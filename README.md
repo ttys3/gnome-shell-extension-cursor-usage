@@ -42,13 +42,11 @@ A GNOME Shell extension that displays Cursor AI editor usage statistics in your 
 
 After enabling the extension:
 
-1. visit https://extensions.gnome.org/local/ and find "Cursor Usage" extension in your "Installed Extensions"
-2. click "Toggle ON" to enable the extension
-3. click "Gear" icon to access settings
-4. Configure the following options:
-   - Update frequency
+1. Click the extension icon in the top panel, and then click "Preferences"
+2. Configure the following options:
    - User ID and Cookies for API request
    - Monthly premium API usage quota
+   - Update frequency
 
 ## Requirements
 
