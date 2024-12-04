@@ -187,7 +187,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
         // add monthly usage percentage
         const monthlyUsage = new PopupMenu.PopupMenuItem('', { reactive: false });
-        monthlyUsage.label.text = `Premium Model Used: ${usedPercent}%`;
+        monthlyUsage.label.text = `Used Percentage: ${usedPercent}% (${numRequests}/${monthlyQuota})`;
         this.menuLayout.addMenuItem(monthlyUsage);
 
         // Add menu items for each model
@@ -199,6 +199,14 @@ class CursorUsageIndicator extends PanelMenu.Button {
             menuItem.label.text = `${model}:\nRequests: ${data.numRequests}\nTokens: ${data.numTokens}`;
             this.menuLayout.addMenuItem(menuItem);
         }
+
+        // add a settings button
+        const settingsButton = new PopupMenu.PopupMenuItem('Settings', { reactive: true });
+        settingsButton.connect('activate', () => {
+            this.menu.closeAll();
+            this._settings.openInSystemSettings();
+        });
+        this.menuLayout.addMenuItem(settingsButton);
     }
 
     destroy() {
