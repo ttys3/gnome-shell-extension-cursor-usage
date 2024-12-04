@@ -10,7 +10,6 @@ import {Extension, gettext as _} from 'resource:///org/gnome/shell/extensions/ex
 import * as Util from 'resource:///org/gnome/shell/misc/util.js';
 
 
-
 const DEFAULT_UPDATE_INTERVAL = 30; // 30 seconds in seconds
 
 const DEFAULT_MONTHLY_QUOTA = 500;
@@ -110,7 +109,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
         try {
             const user_id = this._settings.get_string('user-id');
             if (!user_id) {
-                log('User ID is not set');
+                log('[Cursor Usage] User ID is not set');
                 return;
             }
             // Create session
@@ -127,7 +126,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
             // Add cookie from settings
             const cookie = this._settings.get_string('cookie');
             if (!cookie) {
-                log('Cookie is not set');
+                log('[Cursor Usage] Cookie is not set');
                 return;
             }
             message.request_headers.append('cookie', cookie);
@@ -140,8 +139,10 @@ class CursorUsageIndicator extends PanelMenu.Button {
             this._usage = data;
             this._updateDisplay();
         } catch (error) {
-            log('Error fetching Cursor usage data: ' + error);
+            log('[Cursor Usage] Error fetching Cursor usage data: ' + error);
             this.buttonText.set_text('Error');
+
+            this._addCommonButtons();
         }
     }
 
@@ -187,9 +188,6 @@ class CursorUsageIndicator extends PanelMenu.Button {
         // Clear existing menu items
         this.menuLayout.removeAll();
 
-        // add a separator
-        this.menuLayout.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-
         const titleItem = new PopupMenu.PopupMenuItem('Cursor Usage', { reactive: false });
         this.menuLayout.addMenuItem(titleItem);
 
@@ -209,11 +207,33 @@ class CursorUsageIndicator extends PanelMenu.Button {
             let modelLabel = new St.Label({ text: model, style: 'font-weight: bold;' });
             box.add_child(modelLabel);
 
-            let requestsLabel = new St.Label({ text: `Requests: ${data.numRequests}`, x_align: Clutter.ActorAlign.START });
-            box.add_child(requestsLabel);
+            // Create boxes for each stat (horizontal layout by default)
+            let requestsBox = new St.BoxLayout();
+            let tokensBox = new St.BoxLayout();
 
-            let tokensLabel = new St.Label({ text: `Tokens: ${data.numTokens}`, x_align: Clutter.ActorAlign.START });
-            box.add_child(tokensLabel);
+            // Create labels with fixed width for the keys
+            let requestsKeyLabel = new St.Label({ 
+                text: 'Requests: ',
+                style: 'min-width: 70px;' // Adjust width as needed
+            });
+            let tokensKeyLabel = new St.Label({ 
+                text: 'Tokens: ',
+                style: 'min-width: 70px;' // Adjust width as needed
+            });
+
+            // Create labels for the values
+            let requestsValueLabel = new St.Label({ text: `${data.numRequests}` });
+            let tokensValueLabel = new St.Label({ text: `${data.numTokens}` });
+
+            // Add labels to their respective boxes
+            requestsBox.add_child(requestsKeyLabel);
+            requestsBox.add_child(requestsValueLabel);
+            tokensBox.add_child(tokensKeyLabel);
+            tokensBox.add_child(tokensValueLabel);
+
+            // Add the horizontal boxes to the main vertical box
+            box.add_child(requestsBox);
+            box.add_child(tokensBox);
 
             menuItem.add_child(box);
             this.menuLayout.addMenuItem(menuItem);
@@ -223,26 +243,13 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 // Build a text string with all the information
                 const copyText = `Model: ${model}\nRequests: ${data.numRequests}\nTokens: ${data.numTokens}`;
                 // Log the copied text
-                log(`Copied to clipboard: ${copyText}`);
+                log(`[Cursor Usage] Copied to clipboard: ${copyText}`);
                 // Copy text to clipboard
                 St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, copyText);
             });
         }
 
-        // add a separator
-        this.menuLayout.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-
-        // add a refresh button
-        const refreshButton = new PopupMenu.PopupMenuItem('Refresh', { reactive: true });
-        refreshButton.connect('activate', () => {
-            this.menu.close();
-            this._updateUsage();
-        });
-        this.menuLayout.addMenuItem(refreshButton);
-
-        // add a separator
-        this.menuLayout.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-        this._addPreferencesButton();
+        this._addCommonButtons();
     }
 
     destroy() {
@@ -285,6 +292,23 @@ class CursorUsageIndicator extends PanelMenu.Button {
             Util.spawn(["gnome-extensions", "prefs", this._extension_uuid]);
         });
         this.menuLayout.addMenuItem(preferencesButton);
+    }
+
+    _addCommonButtons() {
+        // add a separator
+        this.menuLayout.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        // add a refresh button
+        const refreshButton = new PopupMenu.PopupMenuItem('Refresh', { reactive: true });
+        refreshButton.connect('activate', () => {
+            this.menu.close();
+            this._updateUsage();
+        });
+        this.menuLayout.addMenuItem(refreshButton);
+
+        // add a separator
+        this.menuLayout.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+        this._addPreferencesButton();
     }
 });
 
