@@ -69,6 +69,11 @@ class CursorUsageIndicator extends PanelMenu.Button {
             this._restartTimer();
         });
 
+        // Add settings change listener for monthly-quota
+        this._monthlyQuotaChangedId = this._settings.connect('changed::monthly-quota', () => {
+            this._updateUsage();
+        });
+
         // Start periodic updates
         this._updateUsage();
         this._startTimer();
@@ -202,6 +207,10 @@ class CursorUsageIndicator extends PanelMenu.Button {
             this.menuLayout.addMenuItem(menuItem);
         }
 
+
+        // add a separator
+        this.menuLayout.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
         // add a settings button
         const settingsButton = new PopupMenu.PopupMenuItem('Settings', { reactive: true });
         settingsButton.connect('activate', () => {
@@ -220,6 +229,11 @@ class CursorUsageIndicator extends PanelMenu.Button {
         if (this._settingsChangedId) {
             log('[Cursor Usage] Disconnecting settings signal');
             this._settings.disconnect(this._settingsChangedId);
+        }
+        // Disconnect monthly-quota settings signal
+        if (this._monthlyQuotaChangedId) {
+            log('[Cursor Usage] Disconnecting monthly-quota settings signal');
+            this._settings.disconnect(this._monthlyQuotaChangedId);
         }
         super.destroy();
     }
