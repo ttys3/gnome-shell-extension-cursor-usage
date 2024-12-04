@@ -4,6 +4,11 @@ A GNOME Shell extension that displays Cursor AI editor usage statistics in your 
 
 [Cursor](https://www.cursor.com/) is an AI-powered code editor that helps developers write code more efficiently through AI assistance.
 
+<div style="display: flex; height: 400px;">
+    <img src="https://github.com/user-attachments/assets/6d5f9aeb-598d-4795-aa86-7d545da13cc4" style="width: 500px; margin-right: 50px;">
+    <img src="https://github.com/user-attachments/assets/40d61826-c181-46fb-90ee-71a87517b6f8" style="width: 500px;">
+</div>
+
 ## Features
 
 - Displays Cursor AI usage statistics in GNOME Shell top panel
