@@ -207,6 +207,17 @@ class CursorUsageIndicator extends PanelMenu.Button {
             this.menuLayout.addMenuItem(menuItem);
         }
 
+        // add a separator
+        this.menuLayout.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        // add a refresh button
+        const refreshButton = new PopupMenu.PopupMenuItem('Refresh', { reactive: true });
+        refreshButton.connect('activate', () => {
+            this.menu.close();
+            this._updateUsage();
+        });
+        this.menuLayout.addMenuItem(refreshButton);
+
 
         // add a separator
         this.menuLayout.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
