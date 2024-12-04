@@ -6,7 +6,8 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import Soup from 'gi://Soup';
 import GLib from 'gi://GLib';
-import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
+import {Extension, gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
+import * as Util from 'resource:///org/gnome/shell/misc/util.js';
 
 
 
@@ -16,8 +17,9 @@ const DEFAULT_MONTHLY_QUOTA = 500;
 
 const CursorUsageIndicator = GObject.registerClass(
 class CursorUsageIndicator extends PanelMenu.Button {
-    _init(settings) {
+    _init(uuid, settings) {
         super._init(0.0, 'Cursor Usage Indicator');
+        this._extension_uuid = uuid;
         this._settings = settings;
 
         // Create container for label and refresh button
@@ -203,8 +205,8 @@ class CursorUsageIndicator extends PanelMenu.Button {
         // add a settings button
         const settingsButton = new PopupMenu.PopupMenuItem('Settings', { reactive: true });
         settingsButton.connect('activate', () => {
-            this.menu.closeAll();
-            this._settings.openInSystemSettings();
+            this.menu.close();
+            Util.spawn(["gnome-extensions", "prefs", this._extension_uuid]);
         });
         this.menuLayout.addMenuItem(settingsButton);
     }
@@ -226,7 +228,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
 export default class CursorUsageExtension extends Extension {
     enable() {
         this._settings = this.getSettings('org.gnome.shell.extensions.cursor-usage');
-        this._indicator = new CursorUsageIndicator(this._settings);
+        this._indicator = new CursorUsageIndicator(this.uuid, this._settings);
         Main.panel.addToStatusArea('cursor-usage', this._indicator);
     }
 
