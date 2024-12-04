@@ -77,6 +77,8 @@ class CursorUsageIndicator extends PanelMenu.Button {
         // Start periodic updates
         this._updateUsage();
         this._startTimer();
+
+        this._addCommonButtons();
     }
 
     _startTimer() {
@@ -141,8 +143,6 @@ class CursorUsageIndicator extends PanelMenu.Button {
         } catch (error) {
             log('[Cursor Usage] Error fetching Cursor usage data: ' + error);
             this.buttonText.set_text('Error');
-
-            this._addCommonButtons();
         }
     }
 
