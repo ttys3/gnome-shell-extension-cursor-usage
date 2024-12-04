@@ -204,15 +204,28 @@ class CursorUsageIndicator extends PanelMenu.Button {
             this.menuLayout.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
             const menuItem = new PopupMenu.PopupMenuItem('');
-            menuItem.label.text = `${model}:\nRequests: ${data.numRequests}\nTokens: ${data.numTokens}`;
+            let box = new St.BoxLayout({ vertical: true });
+
+            let modelLabel = new St.Label({ text: model, style: 'font-weight: bold;' });
+            box.add_child(modelLabel);
+
+            let requestsLabel = new St.Label({ text: `Requests: ${data.numRequests}`, x_align: Clutter.ActorAlign.START });
+            box.add_child(requestsLabel);
+
+            let tokensLabel = new St.Label({ text: `Tokens: ${data.numTokens}`, x_align: Clutter.ActorAlign.START });
+            box.add_child(tokensLabel);
+
+            menuItem.add_child(box);
             this.menuLayout.addMenuItem(menuItem);
 
             // Add click event to copy text to clipboard
             menuItem.connect('activate', () => {
+                // Build a text string with all the information
+                const copyText = `Model: ${model}\nRequests: ${data.numRequests}\nTokens: ${data.numTokens}`;
                 // Log the copied text
-                log(`Copied to clipboard: ${menuItem.label.text}`);
+                log(`Copied to clipboard: ${copyText}`);
                 // Copy text to clipboard
-                St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, menuItem.label.text);
+                St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, copyText);
             });
         }
 
