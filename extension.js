@@ -61,12 +61,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
         // add preferences button if no settings are set
         if (!this._settings.get_string('user-id') || !this._settings.get_string('cookie')) {
-            const preferencesButton = new PopupMenu.PopupMenuItem('Preferences', { reactive: true });
-            preferencesButton.connect('activate', () => {
-                this.menu.close();
-                Util.spawn(["gnome-extensions", "prefs", this._extension_uuid]);
-            });
-            this.menuLayout.addMenuItem(preferencesButton);
+            this._addPreferencesButton();
         }
 
         this.menu.addMenuItem(this.menuLayout);
@@ -227,14 +222,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
         // add a separator
         this.menuLayout.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
-
-        // add a settings button
-        const settingsButton = new PopupMenu.PopupMenuItem('Settings', { reactive: true });
-        settingsButton.connect('activate', () => {
-            this.menu.close();
-            Util.spawn(["gnome-extensions", "prefs", this._extension_uuid]);
-        });
-        this.menuLayout.addMenuItem(settingsButton);
+        this._addPreferencesButton();
     }
 
     destroy() {
@@ -268,6 +256,15 @@ class CursorUsageIndicator extends PanelMenu.Button {
     _connectSettingChange(settingKey, callback) {
         // Connect setting change signal and return the signal ID
         return this._settings.connect(`changed::${settingKey}`, callback);
+    }
+
+    _addPreferencesButton() {
+        const preferencesButton = new PopupMenu.PopupMenuItem(_('Preferences'), { reactive: true });
+        preferencesButton.connect('activate', () => {
+            this.menu.close();
+            Util.spawn(["gnome-extensions", "prefs", this._extension_uuid]);
+        });
+        this.menuLayout.addMenuItem(preferencesButton);
     }
 });
 
