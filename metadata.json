@@ -1,0 +1,8 @@
+{
+    "name": "Cursor Usage",
+    "description": "Shows Cursor AI models usage data in the top bar",
+    "uuid": "cursor-usage@ttys3.github.io",
+    "shell-version": ["46", "47"],
+    "version": 1,
+    "settings-schema": "org.gnome.shell.extensions.cursor-usage"
+}

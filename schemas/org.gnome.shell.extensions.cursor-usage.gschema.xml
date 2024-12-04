@@ -1,0 +1,28 @@
+<schemalist>
+  <schema id="org.gnome.shell.extensions.cursor-usage" path="/org/gnome/shell/extensions/cursor-usage/">
+    <key name="cookie" type="s">
+      <default>""</default>
+      <summary>Cookie for API requests</summary>
+      <description>
+        The cookie value to be used in API requests for authentication.
+      </description>
+    </key>
+    <key name="user-id" type="s">
+      <default>""</default>
+      <summary>User ID for API requests</summary>
+      <description>
+        The user ID to be used in API requests for identifying the user.
+        you can find it in the URL of your Cursor profile page.
+        it is like `https://www.cursor.com/api/usage?user=user_xxxxxxxxxxx`
+        the `user_xxxxxxxxxxx` is the user id.
+      </description>
+    </key>
+    <key name="monthly-quota" type="i">
+      <default>500</default>
+      <summary>Monthly API usage quota</summary>
+      <description>
+        The monthly quota limit for API usage. Default is set to 500 requests per month.
+      </description>
+    </key>
+  </schema>
+</schemalist> 
