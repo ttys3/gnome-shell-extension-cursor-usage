@@ -184,14 +184,14 @@ class CursorUsageIndicator extends PanelMenu.Button {
         
         this.refreshButton.child.icon_name = iconName;
 
-        // Clear existing menu items except the first one
-        // this.menuLayout.removeAll();
-        while (this.menuLayout.numMenuItems > 1) {
-            this.menuLayout._getMenuItems()[1].destroy();
-        }
+        // Clear existing menu items
+        this.menuLayout.removeAll();
 
         // add a separator
         this.menuLayout.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        const titleItem = new PopupMenu.PopupMenuItem('Cursor Usage', { reactive: false });
+        this.menuLayout.addMenuItem(titleItem);
 
         // add monthly usage percentage
         const monthlyUsage = new PopupMenu.PopupMenuItem('', { reactive: false });
@@ -226,7 +226,6 @@ class CursorUsageIndicator extends PanelMenu.Button {
             this._updateUsage();
         });
         this.menuLayout.addMenuItem(refreshButton);
-
 
         // add a separator
         this.menuLayout.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
