@@ -74,13 +74,21 @@ class CursorUsageIndicator extends PanelMenu.Button {
         // Initialize data
         this._usage = {};
         
-        // Add settings change listener
+        // Add settings change listeners
         this._settingsChangedId = this._settings.connect('changed::update-interval', () => {
             this._restartTimer();
         });
 
-        // Add settings change listener for monthly-quota
         this._monthlyQuotaChangedId = this._settings.connect('changed::monthly-quota', () => {
+            this._updateUsage();
+        });
+
+        // Add new listeners for user-id and cookie changes
+        this._userIdChangedId = this._settings.connect('changed::user-id', () => {
+            this._updateUsage();
+        });
+
+        this._cookieChangedId = this._settings.connect('changed::cookie', () => {
             this._updateUsage();
         });
 
@@ -246,15 +254,23 @@ class CursorUsageIndicator extends PanelMenu.Button {
             log('[Cursor Usage] Cleaning up timer on destroy');
             GLib.source_remove(this._timer);
         }
-        // Disconnect settings signal
+        // Disconnect all settings signals
         if (this._settingsChangedId) {
             log('[Cursor Usage] Disconnecting settings signal');
             this._settings.disconnect(this._settingsChangedId);
         }
-        // Disconnect monthly-quota settings signal
         if (this._monthlyQuotaChangedId) {
             log('[Cursor Usage] Disconnecting monthly-quota settings signal');
             this._settings.disconnect(this._monthlyQuotaChangedId);
+        }
+        // Disconnect new signals
+        if (this._userIdChangedId) {
+            log('[Cursor Usage] Disconnecting user-id settings signal');
+            this._settings.disconnect(this._userIdChangedId);
+        }
+        if (this._cookieChangedId) {
+            log('[Cursor Usage] Disconnecting cookie settings signal');
+            this._settings.disconnect(this._cookieChangedId);
         }
         super.destroy();
     }
