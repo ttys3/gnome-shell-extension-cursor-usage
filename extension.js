@@ -75,22 +75,10 @@ class CursorUsageIndicator extends PanelMenu.Button {
         this._usage = {};
         
         // Add settings change listeners
-        this._settingsChangedId = this._settings.connect('changed::update-interval', () => {
-            this._restartTimer();
-        });
-
-        this._monthlyQuotaChangedId = this._settings.connect('changed::monthly-quota', () => {
-            this._updateUsage();
-        });
-
-        // Add new listeners for user-id and cookie changes
-        this._userIdChangedId = this._settings.connect('changed::user-id', () => {
-            this._updateUsage();
-        });
-
-        this._cookieChangedId = this._settings.connect('changed::cookie', () => {
-            this._updateUsage();
-        });
+        this._settingsChangedId = this._connectSettingChange('update-interval', this._restartTimer.bind(this));
+        this._monthlyQuotaChangedId = this._connectSettingChange('monthly-quota', this._updateUsage.bind(this));
+        this._userIdChangedId = this._connectSettingChange('user-id', this._updateUsage.bind(this));
+        this._cookieChangedId = this._connectSettingChange('cookie', this._updateUsage.bind(this));
 
         // Start periodic updates
         this._updateUsage();
@@ -254,25 +242,32 @@ class CursorUsageIndicator extends PanelMenu.Button {
             log('[Cursor Usage] Cleaning up timer on destroy');
             GLib.source_remove(this._timer);
         }
-        // Disconnect all settings signals
+        // Disconnect settings signal
         if (this._settingsChangedId) {
             log('[Cursor Usage] Disconnecting settings signal');
             this._settings.disconnect(this._settingsChangedId);
         }
+        // Disconnect monthly-quota settings signal
         if (this._monthlyQuotaChangedId) {
             log('[Cursor Usage] Disconnecting monthly-quota settings signal');
             this._settings.disconnect(this._monthlyQuotaChangedId);
         }
-        // Disconnect new signals
+        // Disconnect user-id settings signal
         if (this._userIdChangedId) {
             log('[Cursor Usage] Disconnecting user-id settings signal');
             this._settings.disconnect(this._userIdChangedId);
         }
+        // Disconnect cookie settings signal
         if (this._cookieChangedId) {
             log('[Cursor Usage] Disconnecting cookie settings signal');
             this._settings.disconnect(this._cookieChangedId);
         }
         super.destroy();
+    }
+
+    _connectSettingChange(settingKey, callback) {
+        // Connect setting change signal and return the signal ID
+        return this._settings.connect(`changed::${settingKey}`, callback);
     }
 });
 
