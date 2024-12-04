@@ -206,6 +206,14 @@ class CursorUsageIndicator extends PanelMenu.Button {
             const menuItem = new PopupMenu.PopupMenuItem('');
             menuItem.label.text = `${model}:\nRequests: ${data.numRequests}\nTokens: ${data.numTokens}`;
             this.menuLayout.addMenuItem(menuItem);
+
+            // Add click event to copy text to clipboard
+            menuItem.connect('activate', () => {
+                // Log the copied text
+                log(`Copied to clipboard: ${menuItem.label.text}`);
+                // Copy text to clipboard
+                St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, menuItem.label.text);
+            });
         }
 
         // add a separator
