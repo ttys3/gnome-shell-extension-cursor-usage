@@ -59,6 +59,16 @@ class CursorUsageIndicator extends PanelMenu.Button {
         const titleItem = new PopupMenu.PopupMenuItem('Cursor Usage', { reactive: false });
         this.menuLayout.addMenuItem(titleItem);
 
+        // add preferences button if no settings are set
+        if (!this._settings.get_string('user-id') || !this._settings.get_string('cookie')) {
+            const preferencesButton = new PopupMenu.PopupMenuItem('Preferences', { reactive: true });
+            preferencesButton.connect('activate', () => {
+                this.menu.close();
+                Util.spawn(["gnome-extensions", "prefs", this._extension_uuid]);
+            });
+            this.menuLayout.addMenuItem(preferencesButton);
+        }
+
         this.menu.addMenuItem(this.menuLayout);
 
         // Initialize data
