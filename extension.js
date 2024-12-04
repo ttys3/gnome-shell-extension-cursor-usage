@@ -10,7 +10,7 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
 
 
-const UPDATE_INTERVAL = 30; // 30 seconds in seconds
+const DEFAULT_UPDATE_INTERVAL = 30; // 30 seconds in seconds
 
 const DEFAULT_MONTHLY_QUOTA = 500;
 
@@ -62,17 +62,40 @@ class CursorUsageIndicator extends PanelMenu.Button {
         // Initialize data
         this._usage = {};
         
+        // Add settings change listener
+        this._settingsChangedId = this._settings.connect('changed::update-interval', () => {
+            this._restartTimer();
+        });
+
         // Start periodic updates
         this._updateUsage();
         this._startTimer();
     }
 
     _startTimer() {
+        // Clear existing timer if any
+        if (this._timer) {
+            log('[Cursor Usage] Removing existing timer');
+            GLib.source_remove(this._timer);
+            this._timer = null;
+        }
+
+        // Get update interval from settings, fallback to default if not set or invalid
+        let updateInterval = this._settings.get_int('update-interval');
+        if (!updateInterval || updateInterval <= 0) {
+            updateInterval = DEFAULT_UPDATE_INTERVAL;
+        }
+        
+        log(`[Cursor Usage] Creating new timer with interval: ${updateInterval} seconds`);
         this._timer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT,
-            UPDATE_INTERVAL, () => {
+            updateInterval, () => {
                 this._updateUsage();
                 return GLib.SOURCE_CONTINUE;
             });
+    }
+
+    _restartTimer() {
+        this._startTimer();
     }
 
     async _updateUsage() {
@@ -180,7 +203,13 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
     destroy() {
         if (this._timer) {
+            log('[Cursor Usage] Cleaning up timer on destroy');
             GLib.source_remove(this._timer);
+        }
+        // Disconnect settings signal
+        if (this._settingsChangedId) {
+            log('[Cursor Usage] Disconnecting settings signal');
+            this._settings.disconnect(this._settingsChangedId);
         }
         super.destroy();
     }

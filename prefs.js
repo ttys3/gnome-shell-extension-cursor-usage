@@ -1,13 +1,12 @@
 import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 import Gtk from 'gi://Gtk';
-import Gio from 'gi://Gio';
 import Adw from 'gi://Adw';
 
 export default class CursorUsagePreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         // Set default window size
-        window.set_default_size(600, 700);  // width: 600, height: 700
+        window.set_default_size(600, 800);
 
         // Create a preferences page, with a single group
         const page = new Adw.PreferencesPage({
@@ -224,6 +223,41 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
         widget.append(quotaLabel);
         widget.append(quotaDesc); 
         widget.append(quotaSpinButton);
+
+        // Update interval setting
+        let updateIntervalLabel = new Gtk.Label({
+            label: "Update Interval",
+            xalign: 0,
+            css_classes: ['heading']
+        });
+
+        // Add description for update interval
+        let updateIntervalDesc = new Gtk.Label({
+            label: "How often to check for usage updates (in seconds)",
+            xalign: 0,
+            wrap: true,
+            css_classes: ['caption']
+        });
+
+        let updateIntervalSpinButton = new Gtk.SpinButton({
+            adjustment: new Gtk.Adjustment({
+                lower: 10,       
+                upper: 3600,   
+                step_increment: 10,
+                value: settings.get_int('update-interval')
+            }),
+            digits: 0,
+            numeric: true,
+            snap_to_ticks: true
+        });
+
+        updateIntervalSpinButton.connect('value-changed', () => {
+            settings.set_int('update-interval', updateIntervalSpinButton.get_value());
+        });
+
+        widget.append(updateIntervalLabel);
+        widget.append(updateIntervalDesc);
+        widget.append(updateIntervalSpinButton);
 
         widget.set_visible(true);
     }

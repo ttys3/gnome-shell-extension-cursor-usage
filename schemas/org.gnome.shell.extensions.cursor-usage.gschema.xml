@@ -24,5 +24,12 @@
         The monthly quota limit for API usage. Default is set to 500 requests per month.
       </description>
     </key>
+    <key name="update-interval" type="i">
+      <default>60</default>
+      <summary>Update interval in seconds</summary>
+      <description>
+        How often to check for API usage updates, in seconds. Default is 60 (1 minute).
+      </description>
+    </key>
   </schema>
 </schemalist> 
