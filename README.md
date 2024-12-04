@@ -33,7 +33,11 @@ A GNOME Shell extension that displays Cursor AI editor usage statistics in your 
    ```bash
    make install
    ```
-4. Enable the extension using GNOME Extensions app or run 
+
+4. Log Out and Log In to your GNOME Shell session to refresh the extension list.
+
+5. Enable the extension using GNOME Extensions app or run the following command:
+
    ```bash
    gnome-extensions enable cursor-usage@ttys3.github.io
    ```
