@@ -13,18 +13,25 @@ A GNOME Shell extension that displays Cursor AI editor usage statistics in your 
 ## Installation
 
 1. Clone the repository:
+   
    ```bash
+   cd ~/.local/share/gnome-shell/extensions/
    git clone https://github.com/ttys3/gnome-shell-extension-cursor-usage.git cursor-usage@ttys3.github.io
    ```
+
 2. Change to extension directory:
    ```bash
    cd cursor-usage@ttys3.github.io
    ```
+
 3. Install extension to your home directory:
    ```bash
    make install
    ```
-4. Enable the extension using GNOME Extensions app or run `gnome-extensions enable cursor-usage@ttys3.github.io`
+4. Enable the extension using GNOME Extensions app or run 
+   ```bash
+   gnome-extensions enable cursor-usage@ttys3.github.io
+   ```
 
 ## Configuration
 
