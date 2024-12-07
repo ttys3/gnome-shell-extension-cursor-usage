@@ -31,5 +31,12 @@
         How often to check for API usage updates, in seconds. Default is 60 (1 minute).
       </description>
     </key>
+    <key name="debug-mode" type="b">
+      <default>false</default>
+      <summary>Debug mode</summary>
+      <description>
+        Enable debug logging. When enabled, the extension will output debug information to the system log.
+      </description>
+    </key>
   </schema>
 </schemalist> 

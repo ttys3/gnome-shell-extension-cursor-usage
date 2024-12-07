@@ -73,6 +73,9 @@ class CursorUsageIndicator extends PanelMenu.Button {
         this._monthlyQuotaChangedId = this._connectSettingChange('monthly-quota', this._updateUsage.bind(this));
         this._userIdChangedId = this._connectSettingChange('user-id', this._updateUsage.bind(this));
         this._cookieChangedId = this._connectSettingChange('cookie', this._updateUsage.bind(this));
+        this._debugModeChangedId = this._connectSettingChange('debug-mode', () => {
+            this._log('Debug mode changed to: ' + this._settings.get_boolean('debug-mode'));
+        });
 
         // Start periodic updates
         this._updateUsage();
@@ -82,20 +85,18 @@ class CursorUsageIndicator extends PanelMenu.Button {
     }
 
     _startTimer() {
-        // Clear existing timer if any
         if (this._timer) {
-            log('[Cursor Usage] Removing existing timer');
+            this._log('Removing existing timer');
             GLib.source_remove(this._timer);
             this._timer = null;
         }
-
-        // Get update interval from settings, fallback to default if not set or invalid
+        
         let updateInterval = this._settings.get_int('update-interval');
         if (!updateInterval || updateInterval <= 0) {
             updateInterval = DEFAULT_UPDATE_INTERVAL;
         }
         
-        log(`[Cursor Usage] Creating new timer with interval: ${updateInterval} seconds`);
+        this._log(`Creating new timer with interval: ${updateInterval} seconds`);
         this._timer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT,
             updateInterval, () => {
                 this._updateUsage();
@@ -111,7 +112,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
         try {
             const user_id = this._settings.get_string('user-id');
             if (!user_id) {
-                log('[Cursor Usage] User ID is not set');
+                this._log('User ID is not set');
                 return;
             }
             // Create session
@@ -128,7 +129,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
             // Add cookie from settings
             const cookie = this._settings.get_string('cookie');
             if (!cookie) {
-                log('[Cursor Usage] Cookie is not set');
+                this._log('Cookie is not set');
                 return;
             }
             message.request_headers.append('cookie', cookie);
@@ -136,17 +137,20 @@ class CursorUsageIndicator extends PanelMenu.Button {
             // Send request
             const bytes = await session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null);
             const decoder = new TextDecoder('utf-8');
-            const data = JSON.parse(decoder.decode(bytes.get_data()));
+            const utf8_bytes = decoder.decode(bytes.get_data());
+            this._log(`[Cursor Usage] Received data: ${utf8_bytes}`);
+            const data = JSON.parse(utf8_bytes);
 
             this._usage = data;
             this._updateDisplay();
         } catch (error) {
-            log('[Cursor Usage] Error fetching Cursor usage data: ' + error);
+            this._log('Error fetching Cursor usage data: ' + error);
             this.buttonText.set_text('Error');
         }
     }
 
     _updateDisplay() {
+        this._log('Updating display');
         // Update top bar text with GPT-4 usage
         const gpt4 = this._usage['gpt-4'] || {};
         const numRequests = gpt4.numRequests || 0;
@@ -185,6 +189,10 @@ class CursorUsageIndicator extends PanelMenu.Button {
         
         this.refreshButton.child.icon_name = iconName;
 
+
+        this._log(`[Cursor Usage] numRequests: ${numRequests}, Used Percent: ${usedPercent}, Remaining Percent: ${remainingPercent}, Monthly Quota: ${monthlyQuota}, Icon: ${iconName}`);
+
+        this._log('menu removeAll');
         // Clear existing menu items
         this.menuLayout.removeAll();
 
@@ -243,39 +251,45 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 // Build a text string with all the information
                 const copyText = `Model: ${model}\nRequests: ${data.numRequests}\nTokens: ${data.numTokens}`;
                 // Log the copied text
-                log(`[Cursor Usage] Copied to clipboard: ${copyText}`);
+                this._log(`[Cursor Usage] Copied to clipboard: ${copyText}`);
                 // Copy text to clipboard
                 St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, copyText);
             });
         }
 
+        this._log('addCommonButtons');
         this._addCommonButtons();
     }
 
     destroy() {
         if (this._timer) {
-            log('[Cursor Usage] Cleaning up timer on destroy');
+            this._log('Cleaning up timer on destroy');
             GLib.source_remove(this._timer);
         }
         // Disconnect settings signal
         if (this._settingsChangedId) {
-            log('[Cursor Usage] Disconnecting settings signal');
+            this._log('Disconnecting settings signal');
             this._settings.disconnect(this._settingsChangedId);
         }
         // Disconnect monthly-quota settings signal
         if (this._monthlyQuotaChangedId) {
-            log('[Cursor Usage] Disconnecting monthly-quota settings signal');
+            this._log('Disconnecting monthly-quota settings signal');
             this._settings.disconnect(this._monthlyQuotaChangedId);
         }
         // Disconnect user-id settings signal
         if (this._userIdChangedId) {
-            log('[Cursor Usage] Disconnecting user-id settings signal');
+            this._log('Disconnecting user-id settings signal');
             this._settings.disconnect(this._userIdChangedId);
         }
         // Disconnect cookie settings signal
         if (this._cookieChangedId) {
-            log('[Cursor Usage] Disconnecting cookie settings signal');
+            this._log('Disconnecting cookie settings signal');
             this._settings.disconnect(this._cookieChangedId);
+        }
+        // Disconnect debug-mode settings signal
+        if (this._debugModeChangedId) {
+            this._log('Disconnecting debug-mode settings signal');
+            this._settings.disconnect(this._debugModeChangedId);
         }
         super.destroy();
     }
@@ -309,6 +323,12 @@ class CursorUsageIndicator extends PanelMenu.Button {
         // add a separator
         this.menuLayout.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
         this._addPreferencesButton();
+    }
+
+    _log(message) {
+        if (this._settings.get_boolean('debug-mode')) {
+            log(`[Cursor Usage] ${message}`);
+        }
     }
 });
 

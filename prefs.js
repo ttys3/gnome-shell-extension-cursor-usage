@@ -6,7 +6,7 @@ import Adw from 'gi://Adw';
 export default class CursorUsagePreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         // Set default window size
-        window.set_default_size(600, 800);
+        window.set_default_size(600, 840);
 
         // Create a preferences page, with a single group
         const page = new Adw.PreferencesPage({
@@ -258,6 +258,33 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
         widget.append(updateIntervalLabel);
         widget.append(updateIntervalDesc);
         widget.append(updateIntervalSpinButton);
+
+        // Debug mode setting
+        let debugModeLabel = new Gtk.Label({
+            label: "Debug Mode",
+            xalign: 0,
+            css_classes: ['heading']
+        });
+
+        let debugModeDesc = new Gtk.Label({
+            label: "Enable debug logging to system log",
+            xalign: 0,
+            wrap: true,
+            css_classes: ['caption']
+        });
+
+        let debugModeSwitch = new Gtk.Switch({
+            active: settings.get_boolean('debug-mode'),
+            halign: Gtk.Align.START
+        });
+
+        debugModeSwitch.connect('notify::active', () => {
+            settings.set_boolean('debug-mode', debugModeSwitch.get_active());
+        });
+
+        widget.append(debugModeLabel);
+        widget.append(debugModeDesc);
+        widget.append(debugModeSwitch);
 
         widget.set_visible(true);
     }

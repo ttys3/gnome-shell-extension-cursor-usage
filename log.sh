@@ -2,5 +2,5 @@
 
 set -eou pipefail
 
-journalctl --user  -f
+journalctl -f -o cat /usr/bin/gnome-shell | grep "Cursor Usage"
 
