@@ -328,7 +328,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
     _log(message) {
         if (this._settings.get_boolean('debug-mode')) {
             const now = new Date();
-            const timestamp = now.toLocaleString(); // Get local datetime string
+            const timestamp = now.toISOString(); // Format datetime as RFC3339
             log(`[Cursor Usage] [${timestamp}] ${message}`);
         }
     }
