@@ -328,7 +328,21 @@ class CursorUsageIndicator extends PanelMenu.Button {
     _log(message) {
         if (this._settings.get_boolean('debug-mode')) {
             const now = new Date();
-            const timestamp = now.toISOString(); // Format datetime as RFC3339
+            // Get timezone offset in minutes
+            const tzOffset = -now.getTimezoneOffset();
+            const tzHours = String(Math.abs(Math.floor(tzOffset / 60))).padStart(2, '0');
+            const tzMinutes = String(Math.abs(tzOffset % 60)).padStart(2, '0');
+            const tzSign = tzOffset >= 0 ? '+' : '-';
+            
+            // Format datetime in RFC3339 with local timezone
+            const timestamp = now.getFullYear() +
+                '-' + String(now.getMonth() + 1).padStart(2, '0') +
+                '-' + String(now.getDate()).padStart(2, '0') +
+                'T' + String(now.getHours()).padStart(2, '0') +
+                ':' + String(now.getMinutes()).padStart(2, '0') +
+                ':' + String(now.getSeconds()).padStart(2, '0') +
+                tzSign + tzHours + ':' + tzMinutes;
+                
             log(`[Cursor Usage] [${timestamp}] ${message}`);
         }
     }
