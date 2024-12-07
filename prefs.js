@@ -280,6 +280,7 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
 
         debugModeSwitch.connect('notify::active', () => {
             settings.set_boolean('debug-mode', debugModeSwitch.get_active());
+            log(`Debug mode is ${debugModeSwitch.get_active() ? 'enabled' : 'disabled'}`);
         });
 
         widget.append(debugModeLabel);

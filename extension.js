@@ -138,7 +138,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
             const bytes = await session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null);
             const decoder = new TextDecoder('utf-8');
             const utf8_bytes = decoder.decode(bytes.get_data());
-            this._log(`[Cursor Usage] Received data: ${utf8_bytes}`);
+            this._log(`Received data: ${utf8_bytes}`);
             const data = JSON.parse(utf8_bytes);
 
             this._usage = data;
@@ -190,7 +190,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
         this.refreshButton.child.icon_name = iconName;
 
 
-        this._log(`[Cursor Usage] numRequests: ${numRequests}, Used Percent: ${usedPercent}, Remaining Percent: ${remainingPercent}, Monthly Quota: ${monthlyQuota}, Icon: ${iconName}`);
+        this._log(`_updateDisplay numRequests: ${numRequests}, Used Percent: ${usedPercent}, Remaining Percent: ${remainingPercent}, Monthly Quota: ${monthlyQuota}, Icon: ${iconName}`);
 
         this._log('menu removeAll');
         // Clear existing menu items
@@ -251,7 +251,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 // Build a text string with all the information
                 const copyText = `Model: ${model}\nRequests: ${data.numRequests}\nTokens: ${data.numTokens}`;
                 // Log the copied text
-                this._log(`[Cursor Usage] Copied to clipboard: ${copyText}`);
+                this._log(`Copied to clipboard: ${copyText}`);
                 // Copy text to clipboard
                 St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, copyText);
             });
@@ -327,7 +327,9 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
     _log(message) {
         if (this._settings.get_boolean('debug-mode')) {
-            log(`[Cursor Usage] ${message}`);
+            const now = new Date();
+            const timestamp = now.toLocaleString(); // Get local datetime string
+            log(`[Cursor Usage] [${timestamp}] ${message}`);
         }
     }
 });
