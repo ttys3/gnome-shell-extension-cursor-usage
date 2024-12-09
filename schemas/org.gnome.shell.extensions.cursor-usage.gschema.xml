@@ -5,16 +5,15 @@
       <summary>Cookie for API requests</summary>
       <description>
         The cookie value to be used in API requests for authentication.
+        The cookie should be in format: WorkosCursorSessionToken=user_id::jwt_token
+        You can find it in browser devtools after login to cursor.com
       </description>
     </key>
-    <key name="user-id" type="s">
-      <default>""</default>
-      <summary>User ID for API requests</summary>
+    <key name="user" type="s">
+      <default>"{}"</default>
+      <summary>User information</summary>
       <description>
-        The user ID to be used in API requests for identifying the user.
-        you can find it in the URL of your Cursor profile page.
-        it is like `https://www.cursor.com/api/usage?user=user_xxxxxxxxxxx`
-        the `user_xxxxxxxxxxx` is the user id.
+        JSON encoded user information data
       </description>
     </key>
     <key name="monthly-quota" type="i">

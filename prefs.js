@@ -6,7 +6,7 @@ import Adw from 'gi://Adw';
 export default class CursorUsagePreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         // Set default window size
-        window.set_default_size(600, 860);
+        window.set_default_size(600, 740);
 
         // Create a preferences page, with a single group
         const page = new Adw.PreferencesPage({
@@ -87,60 +87,16 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
         `, -1);
         
 
-        // Add user_id input
-        let userIdLabel = new Gtk.Label({
-            label: "User ID:",
-            xalign: 0
-        });
-
-        // Add description label for user ID
-        let userIdDesc = new Gtk.Label({
-            label: "Your Cursor account user ID. The user ID to be used in API requests for identifying the user. You can find it in the ajax request of your Cursor settings page. It is like `https://www.cursor.com/api/usage?user=user_xxxxxxxxxxx`, the `user_xxxxxxxxxxx` is the user id.",
-            xalign: 0,
-            wrap: true,
-            css_classes: ['caption'] // Add smaller font style
-        });
-
-        let userIdEntry = new Gtk.Entry({
-            margin_bottom: 10,
-            margin_top: 5
-        });
-
-        // Get and set the user_id value
-        userIdEntry.set_text(settings.get_string('user-id'));
-        
-        userIdEntry.connect('changed', () => {
-            const value = userIdEntry.get_text();
-            if (!value.startsWith('user_')) {
-                // Add error style to entry
-                userIdEntry.add_css_class('error');
-                // Don't save invalid value
-                return;
-            }
-            
-            // Remove error style if value is valid
-            userIdEntry.remove_css_class('error');
-            settings.set_string('user-id', value);
-        });
-            
-        userIdEntry.get_style_context().add_provider(
-            cssProvider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-        );
-        
-        widget.append(userIdLabel);
-        widget.append(userIdDesc);  // Add description
-        widget.append(userIdEntry);
-
         // cookie 
         let cookieLabel = new Gtk.Label({
-            label: "API Cookie:",
-            xalign: 0
+            label: "API Cookie",
+            xalign: 0,
+            css_classes: ['heading']
         });
 
         // Add description label for cookie
         let cookieDesc = new Gtk.Label({
-            label: "The authentication cookie from cursor.com, it should start with `WorkosCursorSessionToken=user_`",
+            label: "The authentication cookie from cursor.com. You can find it in browser devtools after login. The cookie should be in format: WorkosCursorSessionToken=user_id::jwt_token",
             xalign: 0,
             wrap: true,
             css_classes: ['caption']
@@ -216,6 +172,14 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
             snap_to_ticks: true
         });
 
+        // Disable mouse wheel scrolling
+        const scrollController = new Gtk.EventControllerScroll();
+        scrollController.set_flags(Gtk.EventControllerScrollFlags.VERTICAL);
+        scrollController.connect('scroll', () => {
+            return true; // Prevent default scroll behavior
+        });
+        quotaSpinButton.add_controller(scrollController);
+
         quotaSpinButton.connect('value-changed', () => {
             settings.set_int('monthly-quota', quotaSpinButton.get_value());
         });
@@ -250,6 +214,14 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
             numeric: true,
             snap_to_ticks: true
         });
+
+        // Disable mouse wheel scrolling
+        const scrollController2 = new Gtk.EventControllerScroll();
+        scrollController2.set_flags(Gtk.EventControllerScrollFlags.VERTICAL);
+        scrollController2.connect('scroll', () => {
+            return true; // Prevent default scroll behavior
+        });
+        updateIntervalSpinButton.add_controller(scrollController2);
 
         updateIntervalSpinButton.connect('value-changed', () => {
             settings.set_int('update-interval', updateIntervalSpinButton.get_value());
@@ -338,6 +310,46 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
 
         // Add the horizontal box to the main widget
         widget.append(optionsBox);
+
+        // show user info
+        let userLabel = new Gtk.Label({
+            label: "User Info",
+            xalign: 0,
+            css_classes: ['heading']
+        });
+        widget.append(userLabel);
+
+        // get user info from settings
+        let userInfoStr = settings.get_string('user');
+        if (userInfoStr) {
+            let userInfo = JSON.parse(userInfoStr);
+
+            let user_sub = userInfo.sub || 'unknown';
+            let userInfoLabel = new Gtk.Label({
+                label: `User ID: ${user_sub}`,
+                xalign: 0,
+                wrap: true,
+            });
+            widget.append(userInfoLabel);
+
+            // show user email
+            let user_email = userInfo.email || 'unknown';
+            let userEmailLabel = new Gtk.Label({
+                label: `Email: ${user_email}`,
+                xalign: 0,
+                wrap: true,
+            });
+            widget.append(userEmailLabel);
+
+            // show account created at
+            let user_updated_at = userInfo.updated_at || 'unknown';
+            let userCreatedAtLabel = new Gtk.Label({
+                label: `Request Reset Date: ${user_updated_at}`,
+                xalign: 0,
+                wrap: true,
+            });
+            widget.append(userCreatedAtLabel);
+        }
 
         widget.set_visible(true);
     }

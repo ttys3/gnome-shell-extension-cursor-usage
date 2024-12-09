@@ -66,3 +66,12 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 - Cursor AI Editor - [https://www.cursor.com/](https://www.cursor.com/)
 
 this extension is mostly written by Cursor AI editor.
+
+
+## Refs
+
+https://gnome.pages.gitlab.gnome.org/libsoup/libsoup-3.0/struct.MessageHeaders.html
+
+https://gjs-docs.gnome.org/gio20~2.0/gio.settings#method-set_string
+
+https://gjs-docs.gnome.org/gio20~2.0/gio.notification

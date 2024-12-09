@@ -10,6 +10,7 @@ import {Extension, gettext as _} from 'resource:///org/gnome/shell/extensions/ex
 import * as Util from 'resource:///org/gnome/shell/misc/util.js';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 
+const USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
 const DEFAULT_UPDATE_INTERVAL = 30; // 30 seconds in seconds
 const DEFAULT_MONTHLY_QUOTA = 500;
@@ -60,7 +61,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
         this.menuLayout.addMenuItem(titleItem);
 
         // add preferences button if no settings are set
-        if (!this._settings.get_string('user-id') || !this._settings.get_string('cookie')) {
+        if (!this._settings.get_string('cookie')) {
             this._addPreferencesButton();
         }
 
@@ -73,7 +74,10 @@ class CursorUsageIndicator extends PanelMenu.Button {
         this._settingsChangedId = this._connectSettingChange('update-interval', this._restartTimer.bind(this));
         this._monthlyQuotaChangedId = this._connectSettingChange('monthly-quota', this._updateUsage.bind(this));
         this._userIdChangedId = this._connectSettingChange('user-id', this._updateUsage.bind(this));
-        this._cookieChangedId = this._connectSettingChange('cookie', this._updateUsage.bind(this));
+        this._cookieChangedId = this._connectSettingChange('cookie', () => {
+            this._updateUsage();
+            this._updateUserInfo();
+        });
         this._debugModeChangedId = this._connectSettingChange('debug-mode', () => {
             this._log('Debug mode changed to: ' + this._settings.get_boolean('debug-mode'));
         });
@@ -85,6 +89,11 @@ class CursorUsageIndicator extends PanelMenu.Button {
         this._startUpdateTimer();
 
         this._addCommonButtons();
+
+        // update user info if empty
+        if (!this._settings.get_string('user')) {
+            this._updateUserInfo();
+        }
     }
 
     _startTimer() {
@@ -182,6 +191,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 'GET',
                 'https://download.todesktop.com/230313mzl4w4u92/latest-linux.yml'
             );
+            message.request_headers.append('user-agent', USER_AGENT);
 
             // Send request
             const bytes = await session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null);
@@ -246,11 +256,22 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
     async _updateUsage() {
         try {
-            const user_id = this._settings.get_string('user-id');
+
+            // Add cookie from settings
+            const cookie = this._settings.get_string('cookie');
+            if (!cookie) {
+                this._log('Cookie is not set');
+                return;
+            }
+
+            // Extract user_id from cookie
+            const decodedCookie = decodeURIComponent(cookie);
+            const user_id = decodedCookie.split('=')[1].split('::')[0];
             if (!user_id) {
                 this._log('User ID is not set');
                 return;
             }
+            this._log(`User ID: ${user_id}`);
             // Create session
             let session = new Soup.Session();
             let message = Soup.Message.new(
@@ -261,13 +282,8 @@ class CursorUsageIndicator extends PanelMenu.Button {
             // Add headers
             message.request_headers.append('accept', '*/*');
             message.request_headers.append('accept-language', 'en-US,en;q=0.9');
+            message.request_headers.append('user-agent', USER_AGENT);
 
-            // Add cookie from settings
-            const cookie = this._settings.get_string('cookie');
-            if (!cookie) {
-                this._log('Cookie is not set');
-                return;
-            }
             message.request_headers.append('cookie', cookie);
 
             // Send request
@@ -480,6 +496,56 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 tzSign + tzHours + ':' + tzMinutes;
                 
             log(`[Cursor Usage] [${timestamp}] ${message}`);
+        }
+    }
+
+    async _updateUserInfo() {
+        try {
+            // Check if cookie exists
+            const cookie = this._settings.get_string('cookie');
+            if (!cookie) {
+                this._log('Cookie is not set, skipping user info update');
+                return;
+            }
+
+            // Create session
+            let session = new Soup.Session();
+            let message = Soup.Message.new(
+                'GET',
+                'https://www.cursor.com/api/auth/me'
+            );
+
+            // Add headers
+            message.request_headers.append('user-agent', USER_AGENT);
+            message.request_headers.append('cookie', cookie);
+
+            // Send request
+            const bytes = await session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null);
+            const decoder = new TextDecoder('utf-8');
+            const response = decoder.decode(bytes.get_data());
+            
+            this._log(`Received user info: ${response}`);
+            
+            // response JSON example:
+            /*
+            {
+                "email": "user@example.com",
+                "email_verified": true,
+                "name": "",
+                "sub": "user_xxxxxxxxxxxxxxxxxxxxxxxxxx",
+                "updated_at": "2024-01-01T01:02:03.000Z",
+                "picture": null
+            }
+            */
+            const userData = JSON.parse(response);
+            
+            // Save user info to settings
+            if (userData.sub) {
+                this._settings.set_string('user', JSON.stringify(userData));
+                this._log(`Updated user info: ${JSON.stringify(userData)}`);
+            }
+        } catch (error) {
+            this._log('Error fetching user info: ' + error);
         }
     }
 });
