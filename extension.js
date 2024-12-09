@@ -8,7 +8,8 @@ import Soup from 'gi://Soup';
 import GLib from 'gi://GLib';
 import {Extension, gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Util from 'resource:///org/gnome/shell/misc/util.js';
-import Gio from 'gi://Gio';
+import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
+
 
 const DEFAULT_UPDATE_INTERVAL = 30; // 30 seconds in seconds
 const DEFAULT_MONTHLY_QUOTA = 500;
@@ -198,20 +199,26 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
             // Compare versions
             if (this._compareVersions(latestVersion, localVersion) > 0) {
+                this._log('New version available');
+                const systemSource = MessageTray.getSystemSource();
                 // Show update notification with changelog link
-                const notification = new Main.Notification({
+                const notification = new MessageTray.Notification({
+                    source: systemSource,
                     title: _('Cursor Update Available'),
                     body: _(`A new version (${latestVersion}) of Cursor is available. You are currently using version ${localVersion}.`),
-                    bannerMarkup: true
+                    urgency: MessageTray.Urgency.HIGH,
                 });
 
                 // Add changelog button
                 notification.addAction(_('View Changelog'), () => {
                     Util.spawn(['xdg-open', 'https://changelog.cursor.com/']);
+                    this._log('Viewing changelog');
                 });
 
                 // Show notification
-                Main.notify(notification);
+                systemSource.addNotification(notification);;
+            } else {
+                this._log('No new version available');
             }
         } catch (error) {
             this._log('Error checking for updates: ' + error);
