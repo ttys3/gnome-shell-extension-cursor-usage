@@ -162,6 +162,14 @@ class CursorUsageIndicator extends PanelMenu.Button {
             return version;
         } catch (error) {
             this._log('Error getting local version: ' + error);
+            // Get PATH environment variable for debugging
+            const path = GLib.getenv('PATH');
+            if (!path) {
+                this._log('PATH environment variable not found');
+                return 'Error';
+            } else {
+                this._log('PATH environment variable found: ' + path);
+            }
             return null;
         }
     }

@@ -57,6 +57,29 @@ After enabling the extension:
 - GNOME Shell 46 or later
 - Cursor AI editor installed on your system (if you do not use Cursor AI editor, this extension is useless)
 
+## Troubleshooting
+
+### can not check update?
+
+> Error getting local version: GLib.SpawnError: Failed to execute child process “cursor” (No such file or directory)
+
+- ensure your put `cursor` shell script in `~/.local/bin` directory
+
+- ensure your PATH include `~/.local/bin` directory:
+
+```shell
+sudo tee -a /etc/profile.d/sh.local > /dev/null << 'EOF'
+# Add ~/.local/bin directory to PATH
+HOME_LOCAL_PATH="$HOME/.local/bin"
+case "$PATH" in
+    *"$HOME_LOCAL_PATH"* ) true ;;
+    * ) PATH="$PATH:$HOME_LOCAL_PATH" ;;
+esac
+EOF
+```
+
+you can also use any other directory to put your script, just ensure your PATH include the directory.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
