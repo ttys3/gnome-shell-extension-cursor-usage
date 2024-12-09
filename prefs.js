@@ -6,7 +6,7 @@ import Adw from 'gi://Adw';
 export default class CursorUsagePreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         // Set default window size
-        window.set_default_size(600, 840);
+        window.set_default_size(600, 940);
 
         // Create a preferences page, with a single group
         const page = new Adw.PreferencesPage({
@@ -258,6 +258,33 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
         widget.append(updateIntervalLabel);
         widget.append(updateIntervalDesc);
         widget.append(updateIntervalSpinButton);
+
+        // Check for updates setting
+        let checkUpdateLabel = new Gtk.Label({
+            label: "Check for Updates",
+            xalign: 0,
+            css_classes: ['heading']
+        });
+
+        let checkUpdateDesc = new Gtk.Label({
+            label: "Automatically check for new Cursor app versions every hour",
+            xalign: 0,
+            wrap: true,
+            css_classes: ['caption']
+        });
+
+        let checkUpdateSwitch = new Gtk.Switch({
+            active: settings.get_boolean('check-update'),
+            halign: Gtk.Align.START
+        });
+
+        checkUpdateSwitch.connect('notify::active', () => {
+            settings.set_boolean('check-update', checkUpdateSwitch.get_active());
+        });
+
+        widget.append(checkUpdateLabel);
+        widget.append(checkUpdateDesc);
+        widget.append(checkUpdateSwitch);
 
         // Debug mode setting
         let debugModeLabel = new Gtk.Label({

@@ -38,5 +38,12 @@
         Enable debug logging. When enabled, the extension will output debug information to the system log.
       </description>
     </key>
+    <key name="check-update" type="b">
+      <default>true</default>
+      <summary>Check for updates</summary>
+      <description>
+        Enable automatic update checking. When enabled, the extension will check for new Cursor app versions every hour.
+      </description>
+    </key>
   </schema>
 </schemalist> 

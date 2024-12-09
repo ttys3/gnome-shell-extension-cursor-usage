@@ -8,11 +8,11 @@ import Soup from 'gi://Soup';
 import GLib from 'gi://GLib';
 import {Extension, gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Util from 'resource:///org/gnome/shell/misc/util.js';
-
+import Gio from 'gi://Gio';
 
 const DEFAULT_UPDATE_INTERVAL = 30; // 30 seconds in seconds
-
 const DEFAULT_MONTHLY_QUOTA = 500;
+const UPDATE_CHECK_INTERVAL = 3600; // 1 hour in seconds
 
 const CursorUsageIndicator = GObject.registerClass(
 class CursorUsageIndicator extends PanelMenu.Button {
@@ -76,10 +76,12 @@ class CursorUsageIndicator extends PanelMenu.Button {
         this._debugModeChangedId = this._connectSettingChange('debug-mode', () => {
             this._log('Debug mode changed to: ' + this._settings.get_boolean('debug-mode'));
         });
+        this._checkUpdateChangedId = this._connectSettingChange('check-update', this._restartUpdateTimer.bind(this));
 
         // Start periodic updates
         this._updateUsage();
         this._startTimer();
+        this._startUpdateTimer();
 
         this._addCommonButtons();
     }
@@ -102,6 +104,133 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 this._updateUsage();
                 return GLib.SOURCE_CONTINUE;
             });
+    }
+
+    _startUpdateTimer() {
+        if (this._updateTimer) {
+            this._log('Removing existing update timer');
+            GLib.source_remove(this._updateTimer);
+            this._updateTimer = null;
+        }
+
+        if (!this._settings.get_boolean('check-update')) {
+            this._log('Update checking is disabled');
+            return;
+        }
+
+        this._log('Creating new update timer');
+        this._updateTimer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT,
+            UPDATE_CHECK_INTERVAL, () => {
+                this._checkForUpdates();
+                return GLib.SOURCE_CONTINUE;
+            });
+
+        // Check for updates immediately
+        this._checkForUpdates();
+        this._log('Update timer started');
+    }
+
+    _restartUpdateTimer() {
+        this._startUpdateTimer();
+    }
+
+    async _getLocalVersion() {
+        try {
+            let [success, stdout, stderr] = GLib.spawn_command_line_sync('cursor --version');
+            if (!success) {
+                this._log('Failed to get local version: ' + new TextDecoder().decode(stderr));
+                return null;
+            }
+            let version = new TextDecoder().decode(stdout).split('\n')[0].trim();
+            this._log('Local version: ' + version);
+            return version;
+        } catch (error) {
+            this._log('Error getting local version: ' + error);
+            return null;
+        }
+    }
+
+    _parseYamlVersion(yamlText) {
+        try {
+            // Simple regex to match the version line
+            const versionMatch = yamlText.match(/^version:\s*(.+)$/m);
+            if (versionMatch && versionMatch[1]) {
+                return versionMatch[1].trim();
+            }
+            return null;
+        } catch (error) {
+            this._log('Error parsing YAML version: ' + error);
+            return null;
+        }
+    }
+
+    async _checkForUpdates() {
+        try {
+            if (!this._settings.get_boolean('check-update')) {
+                return;
+            }
+
+            const localVersion = await this._getLocalVersion();
+            if (!localVersion) {
+                return;
+            }
+
+            // Create session
+            let session = new Soup.Session();
+            let message = Soup.Message.new(
+                'GET',
+                'https://download.todesktop.com/230313mzl4w4u92/latest-linux.yml'
+            );
+
+            // Send request
+            const bytes = await session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null);
+            const decoder = new TextDecoder('utf-8');
+            const yamlText = decoder.decode(bytes.get_data());
+            
+            // Parse version from YAML text
+            const latestVersion = this._parseYamlVersion(yamlText);
+            if (!latestVersion) {
+                this._log('Failed to parse latest version from YAML');
+                return;
+            }
+
+            this._log(`Latest version: ${latestVersion}, Local version: ${localVersion}`);
+
+            // Compare versions
+            if (this._compareVersions(latestVersion, localVersion) > 0) {
+                // Show update notification with changelog link
+                const notification = new Main.Notification({
+                    title: _('Cursor Update Available'),
+                    body: _(`A new version (${latestVersion}) of Cursor is available. You are currently using version ${localVersion}.`),
+                    bannerMarkup: true
+                });
+
+                // Add changelog button
+                notification.addAction(_('View Changelog'), () => {
+                    Util.spawn(['xdg-open', 'https://changelog.cursor.com/']);
+                });
+
+                // Show notification
+                Main.notify(notification);
+            }
+        } catch (error) {
+            this._log('Error checking for updates: ' + error);
+        }
+    }
+
+    _compareVersions(v1, v2) {
+        const parts1 = v1.split('.').map(Number);
+        const parts2 = v2.split('.').map(Number);
+        
+        for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+            const part1 = parts1[i] || 0;
+            const part2 = parts2[i] || 0;
+            
+            if (part1 > part2) return 1;
+            if (part1 < part2) return -1;
+        }
+        
+        return 0;
     }
 
     _restartTimer() {
