@@ -142,8 +142,8 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
         window.add(page);
 
         const group = new Adw.PreferencesGroup({
-            title: _('Authentication'),
-            description: _('Configure your Cursor account credentials for API access'),
+            title: _('Cursor API Settings'),
+            description: _('Configure your Cursor API access and usage preferences'),
         });
         page.add(group);
 
