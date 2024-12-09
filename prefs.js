@@ -6,7 +6,7 @@ import Adw from 'gi://Adw';
 export default class CursorUsagePreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         // Set default window size
-        window.set_default_size(600, 940);
+        window.set_default_size(600, 860);
 
         // Create a preferences page, with a single group
         const page = new Adw.PreferencesPage({
@@ -259,7 +259,21 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
         widget.append(updateIntervalDesc);
         widget.append(updateIntervalSpinButton);
 
-        // Check for updates setting
+        // Create a horizontal box for Check for Updates and Debug mode
+        let optionsBox = new Gtk.Box({
+            orientation: Gtk.Orientation.HORIZONTAL,
+            spacing: 20,  // Add some spacing between options
+            margin_top: 10,
+            margin_bottom: 10,
+            homogeneous: true  // Make both options take equal space
+        });
+
+        // Check for Updates - vertical box for label and switch
+        let checkUpdateBox = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 5
+        });
+
         let checkUpdateLabel = new Gtk.Label({
             label: "Check for Updates",
             xalign: 0,
@@ -282,11 +296,16 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
             settings.set_boolean('check-update', checkUpdateSwitch.get_active());
         });
 
-        widget.append(checkUpdateLabel);
-        widget.append(checkUpdateDesc);
-        widget.append(checkUpdateSwitch);
+        checkUpdateBox.append(checkUpdateLabel);
+        checkUpdateBox.append(checkUpdateDesc);
+        checkUpdateBox.append(checkUpdateSwitch);
 
-        // Debug mode setting
+        // Debug mode - vertical box for label and switch
+        let debugModeBox = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 5
+        });
+
         let debugModeLabel = new Gtk.Label({
             label: "Debug Mode",
             xalign: 0,
@@ -307,12 +326,18 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
 
         debugModeSwitch.connect('notify::active', () => {
             settings.set_boolean('debug-mode', debugModeSwitch.get_active());
-            log(`Debug mode is ${debugModeSwitch.get_active() ? 'enabled' : 'disabled'}`);
         });
 
-        widget.append(debugModeLabel);
-        widget.append(debugModeDesc);
-        widget.append(debugModeSwitch);
+        debugModeBox.append(debugModeLabel);
+        debugModeBox.append(debugModeDesc);
+        debugModeBox.append(debugModeSwitch);
+
+        // Add both option boxes to the horizontal box
+        optionsBox.append(checkUpdateBox);
+        optionsBox.append(debugModeBox);
+
+        // Add the horizontal box to the main widget
+        widget.append(optionsBox);
 
         widget.set_visible(true);
     }
