@@ -152,6 +152,37 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
         return box;
     }
 
+    // Helper function to create a revealable field
+    createRevealableField(label, value, buttonLabel = 'Show') {
+        let revealer = new Gtk.Revealer({
+            transition_type: Gtk.RevealerTransitionType.SLIDE_DOWN,
+            reveal_child: false
+        });
+
+        let toggleButton = new Gtk.Button({
+            label: `${buttonLabel} ${label}`,
+            halign: Gtk.Align.START
+        });
+
+        toggleButton.connect('clicked', () => {
+            let isRevealed = revealer.get_reveal_child();
+            revealer.set_reveal_child(!isRevealed);
+            toggleButton.set_label(`${isRevealed ? buttonLabel : 'Hide'} ${label}`);
+        });
+
+        revealer.set_child(this.createReadOnlyField(label, value));
+
+        let container = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 5
+        });
+        
+        container.append(toggleButton);
+        container.append(revealer);
+
+        return container;
+    }
+
     fillPreferencesWindow(window) {
         // Set default window size
         window.set_default_size(600, 730);
@@ -324,13 +355,17 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
             let userInfo = JSON.parse(userInfoStr);
             const fields = [
                 { label: 'User ID', value: userInfo.sub || 'unknown' },
-                { label: 'Email', value: userInfo.email || 'unknown' },
+                // { label: 'Email', value: userInfo.email || 'unknown' },
                 { label: 'Updated At', value: userInfo.updated_at || 'unknown' }
             ];
 
             fields.forEach(field => {
                 widget.append(this.createReadOnlyField(field.label, field.value));
             });
+
+            if (userInfo.email) {
+                widget.append(this.createRevealableField('Email', userInfo.email, 'Show'));
+            }
         }
 
         widget.set_visible(true);
