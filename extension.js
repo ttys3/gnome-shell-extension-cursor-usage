@@ -367,7 +367,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
         // add monthly usage percentage
         const monthlyUsage = new PopupMenu.PopupMenuItem('', { reactive: false });
-        monthlyUsage.label.text = `Used Percentage: ${usedPercent}% (${numRequests}/${monthlyQuota})`;
+        monthlyUsage.label.text = `Used: ${numRequests} / ${monthlyQuota} (${usedPercent}%)`;
         this.menuLayout.addMenuItem(monthlyUsage);
 
         // Add menu items for each model
