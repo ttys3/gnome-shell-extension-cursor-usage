@@ -132,7 +132,7 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
 
     fillPreferencesWindow(window) {
         // Set default window size
-        window.set_default_size(600, 740);
+        window.set_default_size(600, 730);
 
         // Create a preferences page, with a single group
         const page = new Adw.PreferencesPage({
