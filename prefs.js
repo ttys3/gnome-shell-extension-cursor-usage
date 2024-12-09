@@ -4,6 +4,32 @@ import Gtk from 'gi://Gtk';
 import Adw from 'gi://Adw';
 
 export default class CursorUsagePreferences extends ExtensionPreferences {
+    // Helper function to create a readonly input field with label
+    createReadOnlyField(label, value) {
+        let entry = new Gtk.Entry({
+            text: value,
+            editable: false,
+            can_focus: false,
+            margin_top: 5,
+            margin_bottom: 5,
+        });
+        
+        let box = new Gtk.Box({
+            orientation: Gtk.Orientation.VERTICAL,
+            spacing: 5,
+        });
+        
+        let labelWidget = new Gtk.Label({
+            label: label,
+            xalign: 0,
+        });
+        
+        box.append(labelWidget);
+        box.append(entry);
+        
+        return box;
+    }
+
     fillPreferencesWindow(window) {
         // Set default window size
         window.set_default_size(600, 740);
@@ -324,68 +350,16 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
         if (userInfoStr) {
             let userInfo = JSON.parse(userInfoStr);
 
-            // User ID readonly input
-            let user_sub = userInfo.sub || 'unknown';
-            let userIdEntry = new Gtk.Entry({
-                text: user_sub,
-                editable: false,
-                can_focus: false,
-                margin_top: 5,
-                margin_bottom: 5,
-            });
-            let userIdBox = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 5,
-            });
-            let userIdLabel = new Gtk.Label({
-                label: "User ID",
-                xalign: 0,
-            });
-            userIdBox.append(userIdLabel);
-            userIdBox.append(userIdEntry);
-            widget.append(userIdBox);
+            // Create and append all user info fields
+            const fields = [
+                { label: 'User ID', value: userInfo.sub || 'unknown' },
+                { label: 'Email', value: userInfo.email || 'unknown' },
+                { label: 'Updated xAt', value: userInfo.updated_at || 'unknown' }
+            ];
 
-            // Email readonly input
-            let user_email = userInfo.email || 'unknown';
-            let emailEntry = new Gtk.Entry({
-                text: user_email,
-                editable: false,
-                can_focus: false,
-                margin_top: 5,
-                margin_bottom: 5,
+            fields.forEach(field => {
+                widget.append(this.createReadOnlyField(field.label, field.value));
             });
-            let emailBox = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 5,
-            });
-            let emailLabel = new Gtk.Label({
-                label: "Email",
-                xalign: 0,
-            });
-            emailBox.append(emailLabel);
-            emailBox.append(emailEntry);
-            widget.append(emailBox);
-
-            // Updated At readonly input
-            let user_updated_at = userInfo.updated_at || 'unknown';
-            let updatedAtEntry = new Gtk.Entry({
-                text: user_updated_at,
-                editable: false,
-                can_focus: false,
-                margin_top: 5,
-                margin_bottom: 5,
-            });
-            let updatedAtBox = new Gtk.Box({
-                orientation: Gtk.Orientation.VERTICAL,
-                spacing: 5,
-            });
-            let updatedAtLabel = new Gtk.Label({
-                label: "Updated At",
-                xalign: 0,
-            });
-            updatedAtBox.append(updatedAtLabel);
-            updatedAtBox.append(updatedAtEntry);
-            widget.append(updatedAtBox);
         }
 
         widget.set_visible(true);
