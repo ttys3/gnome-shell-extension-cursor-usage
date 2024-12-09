@@ -324,31 +324,68 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
         if (userInfoStr) {
             let userInfo = JSON.parse(userInfoStr);
 
+            // User ID readonly input
             let user_sub = userInfo.sub || 'unknown';
-            let userInfoLabel = new Gtk.Label({
-                label: `User ID: ${user_sub}`,
-                xalign: 0,
-                wrap: true,
+            let userIdEntry = new Gtk.Entry({
+                text: user_sub,
+                editable: false,
+                can_focus: false,
+                margin_top: 5,
+                margin_bottom: 5,
             });
-            widget.append(userInfoLabel);
+            let userIdBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 5,
+            });
+            let userIdLabel = new Gtk.Label({
+                label: "User ID",
+                xalign: 0,
+            });
+            userIdBox.append(userIdLabel);
+            userIdBox.append(userIdEntry);
+            widget.append(userIdBox);
 
-            // show user email
+            // Email readonly input
             let user_email = userInfo.email || 'unknown';
-            let userEmailLabel = new Gtk.Label({
-                label: `Email: ${user_email}`,
-                xalign: 0,
-                wrap: true,
+            let emailEntry = new Gtk.Entry({
+                text: user_email,
+                editable: false,
+                can_focus: false,
+                margin_top: 5,
+                margin_bottom: 5,
             });
-            widget.append(userEmailLabel);
+            let emailBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 5,
+            });
+            let emailLabel = new Gtk.Label({
+                label: "Email",
+                xalign: 0,
+            });
+            emailBox.append(emailLabel);
+            emailBox.append(emailEntry);
+            widget.append(emailBox);
 
-            // show account created at
+            // Updated At readonly input
             let user_updated_at = userInfo.updated_at || 'unknown';
-            let userCreatedAtLabel = new Gtk.Label({
-                label: `Request Reset Date: ${user_updated_at}`,
-                xalign: 0,
-                wrap: true,
+            let updatedAtEntry = new Gtk.Entry({
+                text: user_updated_at,
+                editable: false,
+                can_focus: false,
+                margin_top: 5,
+                margin_bottom: 5,
             });
-            widget.append(userCreatedAtLabel);
+            let updatedAtBox = new Gtk.Box({
+                orientation: Gtk.Orientation.VERTICAL,
+                spacing: 5,
+            });
+            let updatedAtLabel = new Gtk.Label({
+                label: "Updated At",
+                xalign: 0,
+            });
+            updatedAtBox.append(updatedAtLabel);
+            updatedAtBox.append(updatedAtEntry);
+            widget.append(updatedAtBox);
         }
 
         widget.set_visible(true);

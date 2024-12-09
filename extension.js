@@ -91,9 +91,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
         this._addCommonButtons();
 
         // update user info if empty
-        if (!this._settings.get_string('user')) {
-            this._updateUserInfo();
-        }
+        this._updateUserInfo();
     }
 
     _startTimer() {
@@ -543,6 +541,8 @@ class CursorUsageIndicator extends PanelMenu.Button {
             if (userData.sub) {
                 this._settings.set_string('user', JSON.stringify(userData));
                 this._log(`Updated user info: ${JSON.stringify(userData)}`);
+            } else {
+                this._log('No user info found');
             }
         } catch (error) {
             this._log('Error fetching user info: ' + error);
