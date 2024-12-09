@@ -67,8 +67,19 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
         return spinButton;
     }
 
-    // Helper function to create a switch option
-    createSwitchOption(settings, key, label, description) {
+    // Helper function to create a button
+    createButton(label, onClicked) {
+        let button = new Gtk.Button({
+            label: label,
+            halign: Gtk.Align.START
+        });
+        
+        button.connect('clicked', onClicked);
+        return button;
+    }
+
+    // Helper function to create a switch option with optional button
+    createSwitchOption(settings, key, label, description, button = null) {
         let box = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
             spacing: 5
@@ -89,7 +100,8 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
 
         let switchWidget = new Gtk.Switch({
             active: settings.get_boolean(key),
-            halign: Gtk.Align.START
+            halign: Gtk.Align.START,
+            valign: Gtk.Align.CENTER
         });
 
         switchWidget.connect('notify::active', () => {
@@ -99,6 +111,16 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
         box.append(labelWidget);
         box.append(descWidget);
         box.append(switchWidget);
+
+        if (button) {
+            let buttonBox = new Gtk.Box({
+                orientation: Gtk.Orientation.HORIZONTAL,
+                spacing: 10,
+                margin_top: 5
+            });
+            buttonBox.append(button);
+            box.append(buttonBox);
+        }
 
         return box;
     }
@@ -268,12 +290,17 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
         });
 
         // Add switches
-        optionsBox.append(this.createSwitchOption(
+        let checkUpdateBox = this.createSwitchOption(
             settings,
             'check-update',
             'Check for Updates',
-            'Automatically check for new Cursor app versions every hour'
-        ));
+            'Automatically check for new Cursor app versions every hour',
+            this.createButton('Check Now', () => {
+                // Emit a signal that will be caught by extension.js
+                settings.set_boolean('trigger-check-update', true);
+            })
+        );
+        optionsBox.append(checkUpdateBox);
 
         optionsBox.append(this.createSwitchOption(
             settings,

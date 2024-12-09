@@ -82,6 +82,14 @@ class CursorUsageIndicator extends PanelMenu.Button {
             this._log('Debug mode changed to: ' + this._settings.get_boolean('debug-mode'));
         });
         this._checkUpdateChangedId = this._connectSettingChange('check-update', this._restartUpdateTimer.bind(this));
+        // Add trigger-check-update listener
+        this._triggerCheckUpdateChangedId = this._connectSettingChange('trigger-check-update', () => {
+            if (this._settings.get_boolean('trigger-check-update')) {
+                // Reset the trigger
+                this._settings.set_boolean('trigger-check-update', false);
+                this._checkForUpdates();
+            }
+        });
 
         // Start periodic updates
         this._updateUsage();

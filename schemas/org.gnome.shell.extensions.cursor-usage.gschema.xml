@@ -44,5 +44,12 @@
         Enable automatic update checking. When enabled, the extension will check for new Cursor app versions every hour.
       </description>
     </key>
+    <key name="trigger-check-update" type="b">
+      <default>false</default>
+      <summary>Trigger update check</summary>
+      <description>
+        A trigger to manually check for updates. This is set to true when the "Check Now" button is clicked.
+      </description>
+    </key>
   </schema>
 </schemalist> 
