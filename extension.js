@@ -189,8 +189,10 @@ class CursorUsageIndicator extends PanelMenu.Button {
     }
 
     async _checkForUpdates() {
+        this._log('Checking for updates');
         try {
             if (!this._settings.get_boolean('check-update')) {
+                this._log('Update checking is disabled');
                 return;
             }
 

@@ -327,7 +327,8 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
             'Check for Updates',
             'Automatically check for new Cursor app versions every hour',
             this.createButton('Check Now', () => {
-                // Emit a signal that will be caught by extension.js
+                // Toggle the trigger value to ensure the signal is emitted
+                settings.set_boolean('trigger-check-update', false);
                 settings.set_boolean('trigger-check-update', true);
             })
         );
