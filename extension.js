@@ -203,11 +203,13 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
             // Create session
             let session = new Soup.Session();
+            // ref https://gnome.pages.gitlab.gnome.org/libsoup/libsoup-3.0/method.Session.set_user_agent.html
+            session.set_user_agent(USER_AGENT);
             let message = Soup.Message.new(
                 'GET',
                 'https://download.todesktop.com/230313mzl4w4u92/latest-linux.yml'
             );
-            message.request_headers.append('user-agent', USER_AGENT);
+            // message.request_headers.replace('user-agent', USER_AGENT);
 
             // Send request
             const bytes = await session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null);
@@ -290,6 +292,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
             this._log(`User ID: ${user_id}`);
             // Create session
             let session = new Soup.Session();
+            session.set_user_agent(USER_AGENT);
             let message = Soup.Message.new(
                 'GET',
                 `https://www.cursor.com/api/usage?user=${user_id}`
@@ -298,7 +301,6 @@ class CursorUsageIndicator extends PanelMenu.Button {
             // Add headers
             message.request_headers.append('accept', '*/*');
             message.request_headers.append('accept-language', 'en-US,en;q=0.9');
-            message.request_headers.append('user-agent', USER_AGENT);
 
             message.request_headers.append('cookie', cookie);
 
@@ -526,13 +528,13 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
             // Create session
             let session = new Soup.Session();
+            session.set_user_agent(USER_AGENT);
             let message = Soup.Message.new(
                 'GET',
                 'https://www.cursor.com/api/auth/me'
             );
 
             // Add headers
-            message.request_headers.append('user-agent', USER_AGENT);
             message.request_headers.append('cookie', cookie);
 
             // Send request
