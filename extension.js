@@ -14,7 +14,7 @@ const USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, l
 
 const DEFAULT_UPDATE_INTERVAL = 30; // 30 seconds in seconds
 const DEFAULT_MONTHLY_QUOTA = 500;
-const UPDATE_CHECK_INTERVAL = 3600; // 1 hour in seconds
+const UPDATE_CHECK_INTERVAL = 1800; // 30 minutes in seconds
 
 const CursorUsageIndicator = GObject.registerClass(
 class CursorUsageIndicator extends PanelMenu.Button {
