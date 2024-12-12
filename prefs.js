@@ -233,7 +233,6 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
         let cssProvider = new Gtk.CssProvider();
         cssProvider.load_from_data(`
             textview {
-                background-color: #f0f0f0;
                 border: 2px solid black;
                 border-radius: 4px;
                 padding: 4px;
