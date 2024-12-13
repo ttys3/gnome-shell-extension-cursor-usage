@@ -213,7 +213,7 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
         const links = [
             { uri: 'https://www.cursor.com/settings', label: 'Settings' },
             { uri: 'https://www.cursor.com/pricing', label: 'Price' },
-            { uri: 'https://changelog.cursor.com/', label: 'Changelog' },
+            { uri: 'https://www.cursor.com/changelog', label: 'Changelog' },
             { uri: 'https://docs.cursor.com/', label: 'Docs' },
             { uri: 'https://github.com/ttys3/gnome-shell-extension-cursor-usage/issues', label: 'Report Issue' }
         ];
