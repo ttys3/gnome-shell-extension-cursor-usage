@@ -244,7 +244,14 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 });
 
                 // Show notification
-                systemSource.addNotification(notification);;
+                systemSource.addNotification(notification);
+
+                // Set timer to destroy notification after 300 seconds
+                GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 300, () => {
+                    this._log('Auto-destroying update notification');
+                    notification.destroy();
+                    return GLib.SOURCE_REMOVE;
+                });
             } else {
                 this._log('No new version available');
             }
