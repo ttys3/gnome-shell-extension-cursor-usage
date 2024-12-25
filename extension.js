@@ -100,6 +100,9 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
         // update user info if empty
         this._updateUserInfo();
+
+        // Add a property to store the last notification
+        this._lastNotification = null;
     }
 
     _startTimer() {
@@ -229,7 +232,15 @@ class CursorUsageIndicator extends PanelMenu.Button {
             if (this._compareVersions(latestVersion, localVersion) > 0) {
                 this._log('New version available');
                 const systemSource = MessageTray.getSystemSource();
-                // Show update notification with changelog link
+
+                // Destroy previous notification if it exists
+                if (this._lastNotification) {
+                    this._log('Destroying previous notification');
+                    this._lastNotification.destroy();
+                    this._lastNotification = null;
+                }
+
+                // Create new notification
                 const notification = new MessageTray.Notification({
                     source: systemSource,
                     title: _('Cursor Update Available'),
@@ -243,15 +254,11 @@ class CursorUsageIndicator extends PanelMenu.Button {
                     this._log('Viewing changelog');
                 });
 
+                // Store reference to current notification
+                this._lastNotification = notification;
+
                 // Show notification
                 systemSource.addNotification(notification);
-
-                // Set timer to destroy notification after 300 seconds
-                GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 300, () => {
-                    this._log('Auto-destroying update notification');
-                    notification.destroy();
-                    return GLib.SOURCE_REMOVE;
-                });
             } else {
                 this._log('No new version available');
             }

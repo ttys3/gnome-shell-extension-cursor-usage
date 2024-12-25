@@ -103,4 +103,8 @@ https://gnome.pages.gitlab.gnome.org/libsoup/libsoup-3.0/method.Session.set_user
 
 https://gjs-docs.gnome.org/gio20~2.0/gio.settings#method-set_string
 
+https://gjs.guide/extensions/topics/notifications.html
+
 https://gjs-docs.gnome.org/gio20~2.0/gio.notification
+
+https://gitlab.gnome.org/GNOME/gnome-shell/blob/main/js/ui/messageTray.js
