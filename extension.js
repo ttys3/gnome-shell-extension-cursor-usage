@@ -383,6 +383,15 @@ class CursorUsageIndicator extends PanelMenu.Button {
         const titleItem = new PopupMenu.PopupMenuItem('Cursor Usage', { reactive: false });
         this.menuLayout.addMenuItem(titleItem);
 
+        // reset date
+        const startOfMonth = this._usage.startOfMonth;
+        // convert utc date to local time `"startOfMonth":"2025-01-09T01:02:03.000Z"`
+        const resetDate = new Date(startOfMonth);
+        const resetDateFormated = dateToRFC3339(resetDate);
+        const usageResetDate = new PopupMenu.PopupMenuItem('', { reactive: false });
+        usageResetDate.label.text = `Usage reset: ${resetDateFormated}`;
+        this.menuLayout.addMenuItem(usageResetDate);
+
         // add monthly usage percentage
         const monthlyUsage = new PopupMenu.PopupMenuItem('', { reactive: false });
         monthlyUsage.label.text = `Used: ${numRequests} / ${monthlyQuota} (${usedPercent}%)`;
@@ -390,6 +399,12 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
         // Add menu items for each model
         for (const [model, data] of Object.entries(this._usage)) {
+            // filter entry: only if data is object and has numRequests and numTokens
+            // for skip none usage entry like `"startOfMonth":"2025-01-09T01:02:03.000Z"`
+            if (typeof data !== 'object' || !data.numRequests || !data.numTokens) {
+                continue;
+            }
+
             // add a separator
             this.menuLayout.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
 
@@ -511,22 +526,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
     _log(message) {
         if (this._settings.get_boolean('debug-mode')) {
-            const now = new Date();
-            // Get timezone offset in minutes
-            const tzOffset = -now.getTimezoneOffset();
-            const tzHours = String(Math.abs(Math.floor(tzOffset / 60))).padStart(2, '0');
-            const tzMinutes = String(Math.abs(tzOffset % 60)).padStart(2, '0');
-            const tzSign = tzOffset >= 0 ? '+' : '-';
-            
-            // Format datetime in RFC3339 with local timezone
-            const timestamp = now.getFullYear() +
-                '-' + String(now.getMonth() + 1).padStart(2, '0') +
-                '-' + String(now.getDate()).padStart(2, '0') +
-                'T' + String(now.getHours()).padStart(2, '0') +
-                ':' + String(now.getMinutes()).padStart(2, '0') +
-                ':' + String(now.getSeconds()).padStart(2, '0') +
-                tzSign + tzHours + ':' + tzMinutes;
-                
+            const timestamp = dateToRFC3339(new Date());
             log(`[Cursor Usage] [${timestamp}] ${message}`);
         }
     }
@@ -583,6 +583,23 @@ class CursorUsageIndicator extends PanelMenu.Button {
         }
     }
 });
+
+function dateToRFC3339(date) {
+    // Get timezone offset in minutes
+    const tzOffset = -date.getTimezoneOffset();
+    const tzHours = String(Math.abs(Math.floor(tzOffset / 60))).padStart(2, '0');
+    const tzMinutes = String(Math.abs(tzOffset % 60)).padStart(2, '0');
+    const tzSign = tzOffset >= 0 ? '+' : '-';
+
+    // Format datetime in RFC3339 with local timezone
+    return date.getFullYear() +
+        '-' + String(date.getMonth() + 1).padStart(2, '0') +
+        '-' + String(date.getDate()).padStart(2, '0') +
+        'T' + String(date.getHours()).padStart(2, '0') +
+        ':' + String(date.getMinutes()).padStart(2, '0') +
+        ':' + String(date.getSeconds()).padStart(2, '0') +
+        tzSign + tzHours + ':' + tzMinutes;
+}
 
 export default class CursorUsageExtension extends Extension {
     enable() {
