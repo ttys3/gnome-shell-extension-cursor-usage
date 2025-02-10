@@ -399,9 +399,11 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
         // Add menu items for each model
         for (const [model, data] of Object.entries(this._usage)) {
-            // filter entry: only if data is object and has numRequests and numTokens
+            // filter entry: only if data is object and has numRequests and numTokens properties
             // for skip none usage entry like `"startOfMonth":"2025-01-09T01:02:03.000Z"`
-            if (typeof data !== 'object' || !data.numRequests || !data.numTokens) {
+            if (typeof data !== 'object' || 
+                !data.hasOwnProperty('numRequests') || 
+                !data.hasOwnProperty('numTokens')) {
                 continue;
             }
 
