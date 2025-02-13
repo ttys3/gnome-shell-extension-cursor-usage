@@ -387,9 +387,20 @@ class CursorUsageIndicator extends PanelMenu.Button {
         const startOfMonth = this._usage.startOfMonth;
         // convert utc date to local time `"startOfMonth":"2025-01-09T01:02:03.000Z"`
         const resetDate = new Date(startOfMonth);
+        // calculate next reset date (add one month)
+        const nextResetDate = new Date(resetDate);
+        nextResetDate.setMonth(nextResetDate.getMonth() + 1);
+
+        // calculate days passed percentage in current reset cycle
+        const today = new Date();
+        const daysPassed = Math.floor((today - resetDate) / (1000 * 60 * 60 * 24)) + 1;
+        const totalDays = Math.floor((nextResetDate - resetDate) / (1000 * 60 * 60 * 24));
+        const daysPassedPercent = Math.floor((daysPassed / totalDays) * 100);
+
         const resetDateFormated = dateToRFC3339(resetDate);
+        const nextResetDateFormated = dateToRFC3339(nextResetDate);
         const usageResetDate = new PopupMenu.PopupMenuItem('', { reactive: false });
-        usageResetDate.label.text = `Usage reset: ${resetDateFormated}`;
+        usageResetDate.label.text = `Reset Start: ${resetDateFormated}\nReset Next: ${nextResetDateFormated}\nDays Passed: ${daysPassed}/${totalDays} (${daysPassedPercent}%)`;
         this.menuLayout.addMenuItem(usageResetDate);
 
         // add monthly usage percentage
