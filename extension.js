@@ -10,7 +10,7 @@ import {Extension, gettext as _} from 'resource:///org/gnome/shell/extensions/ex
 import * as Util from 'resource:///org/gnome/shell/misc/util.js';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
 
-const USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+const USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36';
 
 const DEFAULT_UPDATE_INTERVAL = 30; // 30 seconds in seconds
 const DEFAULT_MONTHLY_QUOTA = 500;
@@ -250,7 +250,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
                 // Add changelog button
                 notification.addAction(_('View Changelog'), () => {
-                    Util.spawn(['xdg-open', 'https://changelog.cursor.com/']);
+                    Util.spawn(['xdg-open', 'https://www.cursor.com/changelog']);
                     this._log('Viewing changelog');
                 });
 
@@ -286,6 +286,21 @@ class CursorUsageIndicator extends PanelMenu.Button {
         this._startTimer();
     }
 
+    // add a function to set common headers
+    _setCommonHeaders(message) {
+        message.request_headers.append('accept', '*/*');
+        message.request_headers.append('accept-language', 'en-US,en;q=0.9');
+        message.request_headers.append('dnt', '1');
+        message.request_headers.append('priority', 'u=1, i');
+        message.request_headers.append('referer', 'https://www.cursor.com/settings');
+        message.request_headers.append('sec-ch-ua', '"Not(A:Brand";v="99", "Google Chrome";v="133", "Chromium";v="133"');
+        message.request_headers.append('sec-ch-ua-mobile', '?0');
+        message.request_headers.append('sec-ch-ua-platform', '"Linux"');
+        message.request_headers.append('sec-fetch-dest', 'empty');
+        message.request_headers.append('sec-fetch-mode', 'cors');
+        message.request_headers.append('sec-fetch-site', 'same-origin');
+    }
+
     async _updateUsage() {
         try {
 
@@ -313,8 +328,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
             );
 
             // Add headers
-            message.request_headers.append('accept', '*/*');
-            message.request_headers.append('accept-language', 'en-US,en;q=0.9');
+            this._setCommonHeaders(message);
 
             message.request_headers.append('cookie', cookie);
 
