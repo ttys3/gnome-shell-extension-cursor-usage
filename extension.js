@@ -359,7 +359,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
         
         // Calculate remaining quota percentage
         const remainingPercent = Math.max(0, Math.min(100, Math.floor(((monthlyQuota - numRequests) / monthlyQuota) * 100)));
-        const usedPercent = Math.max(0, Math.min(100, Math.floor((numRequests / monthlyQuota) * 100)));
+        const usedPercent = Math.max(0, 100, Math.floor((numRequests / monthlyQuota) * 100));
 
         // Update icon based on remaining percentage
         let iconName;
