@@ -177,16 +177,26 @@ class CursorUsageIndicator extends PanelMenu.Button {
         }
     }
 
-    _parseYamlVersion(yamlText) {
+    _parseJsonVersion(jsonText) {
         try {
-            // Simple regex to match the version line
-            const versionMatch = yamlText.match(/^version:\s*(.+)$/m);
-            if (versionMatch && versionMatch[1]) {
-                return versionMatch[1].trim();
+            // Parse JSON response
+            const jsonData = JSON.parse(jsonText);
+            
+            // Extract version from downloadUrl
+            if (jsonData && jsonData.downloadUrl) {
+                // The URL format appears to be something like:
+                // https://anysphere-binaries.s3.us-east-1.amazonaws.com/production/client/linux/x64/appimage/Cursor-0.46.9-3395357a4ee2975d5d03595e7607ee84e3db0f2c.deb.glibc2.25-x86_64.AppImage
+                // We need to extract the version (0.46.9) from it
+                const versionMatch = jsonData.downloadUrl.match(/Cursor-([0-9]+\.[0-9]+\.[0-9]+)/);
+                if (versionMatch && versionMatch[1]) {
+                    this._log('Found version in download URL: ' + versionMatch[1]);
+                    return versionMatch[1];
+                }
             }
+            this._log('Could not find version in JSON response');
             return null;
         } catch (error) {
-            this._log('Error parsing YAML version: ' + error);
+            this._log('Error parsing JSON version: ' + error);
             return null;
         }
     }
@@ -210,19 +220,19 @@ class CursorUsageIndicator extends PanelMenu.Button {
             session.set_user_agent(USER_AGENT);
             let message = Soup.Message.new(
                 'GET',
-                'https://download.todesktop.com/230313mzl4w4u92/latest-linux.yml'
+                'https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=latest'
             );
             // message.request_headers.replace('user-agent', USER_AGENT);
 
             // Send request
             const bytes = await session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null);
             const decoder = new TextDecoder('utf-8');
-            const yamlText = decoder.decode(bytes.get_data());
+            const jsonText = decoder.decode(bytes.get_data());
             
             // Parse version from YAML text
-            const latestVersion = this._parseYamlVersion(yamlText);
+            const latestVersion = this._parseJsonVersion(jsonText);
             if (!latestVersion) {
-                this._log('Failed to parse latest version from YAML');
+                this._log('Failed to parse latest version from JSON');
                 return;
             }
 
