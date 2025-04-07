@@ -346,14 +346,20 @@ class CursorUsageIndicator extends PanelMenu.Button {
             const bytes = await session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null);
             const decoder = new TextDecoder('utf-8');
             const utf8_bytes = decoder.decode(bytes.get_data());
+            // {"statusCode":401,"code":"16","error":"Unauthorized","message":"[unauthenticated] Error"}
             this._log(`Received data: ${utf8_bytes}`);
             const data = JSON.parse(utf8_bytes);
+            if (data.statusCode === 401) {
+                this._log('Unauthorized, invalid cookie');
+                this.buttonText.set_text('Error: Unauthorized');
+                return;
+            }
 
             this._usage = data;
             this._updateDisplay();
         } catch (error) {
             this._log('Error fetching Cursor usage data: ' + error);
-            this.buttonText.set_text('Error');
+            this.buttonText.set_text('Error: ' + error);
         }
     }
 
