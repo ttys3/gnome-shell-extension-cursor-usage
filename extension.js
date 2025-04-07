@@ -351,7 +351,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
             const data = JSON.parse(utf8_bytes);
             if (data.statusCode === 401) {
                 this._log('Unauthorized, invalid cookie');
-                this.buttonText.set_text('Error: Unauthorized');
+                this.buttonText.set_text('Unauthorized');
                 return;
             }
 
@@ -359,7 +359,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
             this._updateDisplay();
         } catch (error) {
             this._log('Error fetching Cursor usage data: ' + error);
-            this.buttonText.set_text('Error: ' + error);
+            this.buttonText.set_text('Error');
         }
     }
 
