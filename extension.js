@@ -104,6 +104,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
         // Add a property to store the last notification
         this._lastNotification = null;
         this._notifiedVersion = null;
+        this._currentNotificationDestroyHandlerId = 0;
     }
 
     _startTimer() {
@@ -255,7 +256,15 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
                 // Destroy previous notification if it exists
                 if (this._lastNotification) {
-                    this._log('Destroying previous notification');
+                    this._log('Destroying previous notification programmatically');
+                    if (this._currentNotificationDestroyHandlerId && this._lastNotification.handler_is_connected(this._currentNotificationDestroyHandlerId)) {
+                        try {
+                            this._lastNotification.disconnect(this._currentNotificationDestroyHandlerId);
+                        } catch (e) {
+                            this._log(`Error disconnecting notification destroy signal: ${e}`);
+                        }
+                    }
+                    this._currentNotificationDestroyHandlerId = 0;
                     this._lastNotification.destroy();
                     this._lastNotification = null;
                 }
@@ -274,8 +283,25 @@ class CursorUsageIndicator extends PanelMenu.Button {
                     this._log('Viewing changelog');
                 });
 
+                const newNotification = notification; // Use a clear variable name
+
+                this._currentNotificationDestroyHandlerId = newNotification.connect('destroy', () => {
+                    this._log('Notification self-destroyed (e.g., user closed it).');
+                    // Check if the destroyed notification is the one we are currently tracking.
+                    if (this._lastNotification === newNotification) {
+                        this._lastNotification = null;
+                        // This specific handler is for 'newNotification' which is now destroyed.
+                        // Clear our stored ID as it's no longer active/relevant.
+                        this._currentNotificationDestroyHandlerId = 0;
+                        this._log('Cleared _lastNotification and its handler ID because the tracked notification was destroyed.');
+                    } else {
+                        this._log('A notification self-destroyed, but it was not the currently tracked _lastNotification. No state changed for _lastNotification.');
+                    }
+                });
+                this._log(`Connected destroy signal for new notification. Handler ID: ${this._currentNotificationDestroyHandlerId}`);
+
                 // Store reference to current notification
-                this._lastNotification = notification;
+                this._lastNotification = newNotification;
                 this._notifiedVersion = latestVersion; // Record the version we are notifying for
 
                 // Show notification
@@ -286,6 +312,14 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 // and we had a notification for a (now old or installed) version, clear it and reset notifiedVersion.
                 if (this._lastNotification) {
                     this._log('Current version is up-to-date or newer. Clearing any existing/previous update notification.');
+                    if (this._currentNotificationDestroyHandlerId && this._lastNotification.handler_is_connected(this._currentNotificationDestroyHandlerId)) {
+                        try {
+                            this._lastNotification.disconnect(this._currentNotificationDestroyHandlerId);
+                        } catch (e) {
+                            this._log(`Error disconnecting notification destroy signal (else branch): ${e}`);
+                        }
+                    }
+                    this._currentNotificationDestroyHandlerId = 0;
                     this._lastNotification.destroy();
                     this._lastNotification = null;
                 }
@@ -552,6 +586,26 @@ class CursorUsageIndicator extends PanelMenu.Button {
             this._log('Disconnecting debug-mode settings signal');
             this._settings.disconnect(this._debugModeChangedId);
         }
+
+        // Clean up notification and its handler
+        if (this._lastNotification && this._currentNotificationDestroyHandlerId) {
+            if (this._lastNotification.handler_is_connected(this._currentNotificationDestroyHandlerId)) {
+                try {
+                    this._lastNotification.disconnect(this._currentNotificationDestroyHandlerId);
+                    this._log('Disconnected notification destroy handler in main destroy().');
+                } catch(e) {
+                    this._log(`Error disconnecting notification destroy signal in main destroy(): ${e}`);
+                }
+            }
+        }
+        this._currentNotificationDestroyHandlerId = 0; // Clear the handler ID
+
+        if (this._lastNotification) {
+            this._log('Destroying last notification in main destroy().');
+            this._lastNotification.destroy();
+            this._lastNotification = null;
+        }
+
         super.destroy();
     }
 
