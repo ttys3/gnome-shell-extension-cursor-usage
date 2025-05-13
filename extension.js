@@ -103,6 +103,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
         // Add a property to store the last notification
         this._lastNotification = null;
+        this._notifiedVersion = null;
     }
 
     _startTimer() {
@@ -240,7 +241,16 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
             // Compare versions
             if (this._compareVersions(latestVersion, localVersion) > 0) {
-                this._log('New version available');
+                // If we have already shown a notification for this specific latestVersion,
+                // and that notification object might still be active via this._lastNotification,
+                // don't create a new one. The user will see the existing notification.
+                if (this._notifiedVersion === latestVersion && this._lastNotification) {
+                    this._log(`Notification for version ${latestVersion} already shown and may still be active.`);
+                    return; // Do not proceed to recreate the notification
+                }
+                this._log(`New version ${latestVersion} detected. Current local version: ${localVersion}. Previously notified version: ${this._notifiedVersion}.`);
+
+                this._log('New version available'); // Kept original log for now
                 const systemSource = MessageTray.getSystemSource();
 
                 // Destroy previous notification if it exists
@@ -266,11 +276,20 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
                 // Store reference to current notification
                 this._lastNotification = notification;
+                this._notifiedVersion = latestVersion; // Record the version we are notifying for
 
                 // Show notification
                 systemSource.addNotification(notification);
             } else {
-                this._log('No new version available');
+                this._log(`No new version available. Local: ${localVersion}, Latest: ${latestVersion}.`);
+                // If the current version is up-to-date or newer,
+                // and we had a notification for a (now old or installed) version, clear it and reset notifiedVersion.
+                if (this._lastNotification) {
+                    this._log('Current version is up-to-date or newer. Clearing any existing/previous update notification.');
+                    this._lastNotification.destroy();
+                    this._lastNotification = null;
+                }
+                this._notifiedVersion = null; // Reset, as there's no "new" version we're tracking via notification.
             }
         } catch (error) {
             this._log('Error checking for updates: ' + error);
