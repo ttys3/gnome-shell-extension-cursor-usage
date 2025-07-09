@@ -257,7 +257,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 // Destroy previous notification if it exists
                 if (this._lastNotification) {
                     this._log('Destroying previous notification programmatically');
-                    if (this._currentNotificationDestroyHandlerId && this._lastNotification.handler_is_connected(this._currentNotificationDestroyHandlerId)) {
+                    if (this._currentNotificationDestroyHandlerId && this._lastNotification.is_connected(this._currentNotificationDestroyHandlerId)) {
                         try {
                             this._lastNotification.disconnect(this._currentNotificationDestroyHandlerId);
                         } catch (e) {
@@ -312,7 +312,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 // and we had a notification for a (now old or installed) version, clear it and reset notifiedVersion.
                 if (this._lastNotification) {
                     this._log('Current version is up-to-date or newer. Clearing any existing/previous update notification.');
-                    if (this._currentNotificationDestroyHandlerId && this._lastNotification.handler_is_connected(this._currentNotificationDestroyHandlerId)) {
+                    if (this._currentNotificationDestroyHandlerId && this._lastNotification.is_connected(this._currentNotificationDestroyHandlerId)) {
                         try {
                             this._lastNotification.disconnect(this._currentNotificationDestroyHandlerId);
                         } catch (e) {
@@ -589,7 +589,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
         // Clean up notification and its handler
         if (this._lastNotification && this._currentNotificationDestroyHandlerId) {
-            if (this._lastNotification.handler_is_connected(this._currentNotificationDestroyHandlerId)) {
+            if (this._lastNotification.is_connected(this._currentNotificationDestroyHandlerId)) {
                 try {
                     this._lastNotification.disconnect(this._currentNotificationDestroyHandlerId);
                     this._log('Disconnected notification destroy handler in main destroy().');
