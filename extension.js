@@ -216,20 +216,13 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 return;
             }
 
-            // Create session
-            let session = new Soup.Session();
-            // ref https://gnome.pages.gitlab.gnome.org/libsoup/libsoup-3.0/method.Session.set_user_agent.html
-            session.set_user_agent(USER_AGENT);
-            let message = Soup.Message.new(
-                'GET',
-                'https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=latest'
+            // Make request via Go program to bypass Vercel Security Checkpoint
+            const response = await this._makeHttpRequest(
+                'https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=latest',
+                'GET'
             );
-            // message.request_headers.replace('user-agent', USER_AGENT);
 
-            // Send request
-            const bytes = await session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null);
-            const decoder = new TextDecoder('utf-8');
-            const jsonText = decoder.decode(bytes.get_data());
+            const jsonText = response.body;
             
             // Parse version from YAML text
             const latestVersion = this._parseJsonVersion(jsonText);
@@ -350,6 +343,62 @@ class CursorUsageIndicator extends PanelMenu.Button {
     }
 
     // add a function to set common headers
+    // Helper method to make HTTP requests via Go program to bypass Vercel Security Checkpoint
+    async _makeHttpRequest(url, method = 'GET', customHeaders = {}, cookie = '') {
+        try {
+            const config = {
+                url: url,
+                method: method,
+                headers: {
+                    'accept': '*/*',
+                    'accept-language': 'en-US,en;q=0.9',
+                    'dnt': '1',
+                    'priority': 'u=1, i',
+                    'referer': 'https://www.cursor.com/settings',
+                    'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+                    'sec-ch-ua-mobile': '?0',
+                    'sec-ch-ua-platform': '"Linux"',
+                    'sec-fetch-dest': 'empty',
+                    'sec-fetch-mode': 'cors',
+                    'sec-fetch-site': 'same-origin',
+                    ...customHeaders
+                },
+                cookie: cookie
+            };
+
+            const configJSON = JSON.stringify(config);
+            const extensionDir = this._extension_uuid ? `/home/${GLib.get_user_name()}/.local/share/gnome-shell/extensions/${this._extension_uuid}` : GLib.get_current_dir();
+            
+            this._log(`Making HTTP request via Go program: ${url}`);
+            this._log(`Extension directory: ${extensionDir}`);
+            
+            const [success, stdout, stderr] = GLib.spawn_command_line_sync(`"${extensionDir}/cursor-api-http-client" '${configJSON}'`);
+            
+            if (!success) {
+                this._log(`Go program failed with stderr: ${new TextDecoder().decode(stderr)}`);
+                throw new Error(`Go program execution failed: ${new TextDecoder().decode(stderr)}`);
+            }
+
+            const responseText = new TextDecoder().decode(stdout);
+            this._log(`Go program response: ${responseText}`);
+            
+            try {
+                const response = JSON.parse(responseText);
+                return {
+                    status: response.status,
+                    body: response.body,
+                    headers: response.headers
+                };
+            } catch (parseError) {
+                this._log(`Failed to parse JSON response: ${parseError}`);
+                throw new Error(`Failed to parse response: ${responseText}`);
+            }
+        } catch (error) {
+            this._log(`HTTP request error: ${error}`);
+            throw error;
+        }
+    }
+
     _setCommonHeaders(message) {
         message.request_headers.append('accept', '*/*');
         message.request_headers.append('accept-language', 'en-US,en;q=0.9');
@@ -366,7 +415,6 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
     async _updateUsage() {
         try {
-
             // Add cookie from settings
             const cookie = this._settings.get_string('cookie');
             if (!cookie) {
@@ -382,27 +430,19 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 return;
             }
             this._log(`User ID: ${user_id}`);
-            // Create session
-            let session = new Soup.Session();
-            session.set_user_agent(USER_AGENT);
-            let message = Soup.Message.new(
+
+            // Make request via Go program to bypass Vercel Security Checkpoint
+            const response = await this._makeHttpRequest(
+                `https://www.cursor.com/api/usage?user=${user_id}`,
                 'GET',
-                `https://www.cursor.com/api/usage?user=${user_id}`
+                {},
+                cookie
             );
 
-            // Add headers
-            this._setCommonHeaders(message);
-
-            message.request_headers.append('cookie', cookie);
-
-            // Send request
-            const bytes = await session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null);
-            const decoder = new TextDecoder('utf-8');
-            const utf8_bytes = decoder.decode(bytes.get_data());
-            // {"statusCode":401,"code":"16","error":"Unauthorized","message":"[unauthenticated] Error"}
-            this._log(`Received data: ${utf8_bytes}`);
-            const data = JSON.parse(utf8_bytes);
-            if (data.statusCode === 401) {
+            this._log(`Received data: ${response.body}`);
+            const data = JSON.parse(response.body);
+            
+            if (response.status === 401 || data.statusCode === 401) {
                 this._log('Unauthorized, invalid cookie');
                 this.buttonText.set_text('Unauthorized');
                 return;
@@ -656,23 +696,15 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 return;
             }
 
-            // Create session
-            let session = new Soup.Session();
-            session.set_user_agent(USER_AGENT);
-            let message = Soup.Message.new(
+            // Make request via Go program to bypass Vercel Security Checkpoint
+            const response = await this._makeHttpRequest(
+                'https://www.cursor.com/api/auth/me',
                 'GET',
-                'https://www.cursor.com/api/auth/me'
+                {},
+                cookie
             );
-
-            // Add headers
-            message.request_headers.append('cookie', cookie);
-
-            // Send request
-            const bytes = await session.send_and_read_async(message, GLib.PRIORITY_DEFAULT, null);
-            const decoder = new TextDecoder('utf-8');
-            const response = decoder.decode(bytes.get_data());
             
-            this._log(`Received user info: ${response}`);
+            this._log(`Received user info: ${response.body}`);
             
             // response JSON example:
             /*
@@ -685,7 +717,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 "picture": null
             }
             */
-            const userData = JSON.parse(response);
+            const userData = JSON.parse(response.body);
             
             // Save user info to settings
             if (userData.sub) {

@@ -1,10 +1,13 @@
 schemas/gschemas.compiled:
 	glib-compile-schemas schemas/
 
-install: schemas/gschemas.compiled
+cursor-api-http-client:
+	go build -o cursor-api-http-client main.go
+
+install: schemas/gschemas.compiled cursor-api-http-client
 
 test/prefs:
 	gnome-extensions prefs cursor-usage@ttys3.github.io
 
 clean:
-	rm -f schemas/gschemas.compiled
+	rm -f schemas/gschemas.compiled cursor-api-http-client
