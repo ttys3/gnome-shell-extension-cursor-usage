@@ -6,6 +6,7 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
 import Soup from 'gi://Soup';
 import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 import {Extension, gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Util from 'resource:///org/gnome/shell/misc/util.js';
 import * as MessageTray from 'resource:///org/gnome/shell/ui/messageTray.js';
@@ -15,6 +16,46 @@ const USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, l
 const DEFAULT_UPDATE_INTERVAL = 30; // 30 seconds in seconds
 const DEFAULT_MONTHLY_QUOTA = 500;
 const UPDATE_CHECK_INTERVAL = 1800; // 30 minutes in seconds
+
+// Async spawn function to avoid blocking the UI thread
+function spawnCommandAsync(commandLine) {
+    return new Promise((resolve, reject) => {
+        try {
+            // Parse command line into array
+            let [success, argv] = GLib.shell_parse_argv(commandLine);
+            if (!success) {
+                reject(new Error(`Failed to parse command: ${commandLine}`));
+                return;
+            }
+
+            // Create subprocess
+            let proc = new Gio.Subprocess({
+                argv: argv,
+                flags: Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_PIPE,
+            });
+            proc.init(null);
+
+            // Communicate async
+            proc.communicate_utf8_async(null, null, (proc, result) => {
+                try {
+                    let [success, stdout, stderr] = proc.communicate_utf8_finish(result);
+                    let exitStatus = proc.get_exit_status();
+                    
+                    resolve({
+                        success: success && exitStatus === 0,
+                        stdout: stdout || '',
+                        stderr: stderr || '',
+                        exitStatus: exitStatus
+                    });
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
 
 const CursorUsageIndicator = GObject.registerClass(
 class CursorUsageIndicator extends PanelMenu.Button {
@@ -157,12 +198,12 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
     async _getLocalVersion() {
         try {
-            let [success, stdout, stderr] = GLib.spawn_command_line_sync('cursor --version');
-            if (!success) {
-                this._log('Failed to get local version: ' + new TextDecoder().decode(stderr));
+            let result = await spawnCommandAsync('cursor --version');
+            if (!result.success) {
+                this._log('Failed to get local version: ' + result.stderr);
                 return null;
             }
-            let version = new TextDecoder().decode(stdout).split('\n')[0].trim();
+            let version = result.stdout.split('\n')[0].trim();
             this._log('Local version: ' + version);
             return version;
         } catch (error) {
@@ -372,15 +413,15 @@ class CursorUsageIndicator extends PanelMenu.Button {
             this._log(`Making HTTP request via Go program: ${url}`);
             this._log(`Extension directory: ${extensionDir}`);
             
-            const [success, stdout, stderr] = GLib.spawn_command_line_sync(`"${extensionDir}/cursor-api-http-client" '${configJSON}'`);
+            const result = await spawnCommandAsync(`"${extensionDir}/cursor-api-http-client" '${configJSON}'`);
             
-            if (!success) {
-                this._log(`Go program failed with stderr: ${new TextDecoder().decode(stderr)}`);
-                throw new Error(`Go program execution failed: ${new TextDecoder().decode(stderr)}`);
+            if (!result.success) {
+                this._log(`Go program failed with stderr: ${result.stderr}`);
+                throw new Error(`Go program execution failed: ${result.stderr}`);
             }
 
-            const responseText = new TextDecoder().decode(stdout);
-            const loggingText = new TextDecoder().decode(stderr);
+            const responseText = result.stdout;
+            const loggingText = result.stderr;
             this._log(`Go program logging: ${loggingText}`);
             this._log(`Go program response: ${responseText}`);
             
