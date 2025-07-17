@@ -2,7 +2,7 @@ schemas/gschemas.compiled:
 	glib-compile-schemas schemas/
 
 cursor-api-http-client:
-	go build -o cursor-api-http-client main.go
+	go build -ldflags="-s -w" -o cursor-api-http-client main.go
 
 install: schemas/gschemas.compiled cursor-api-http-client
 
