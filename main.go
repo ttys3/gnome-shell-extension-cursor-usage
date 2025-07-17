@@ -34,12 +34,14 @@ func main() {
 		log.Fatalf("Error parsing config JSON: %v", err)
 	}
 
+	log.Printf("got request: %+v", config)
+
 	// Create custom TLS config to mimic modern browsers
 	jar := tls_client.NewCookieJar()
 	options := []tls_client.HttpClientOption{
 		tls_client.WithTimeoutSeconds(30),
-		tls_client.WithClientProfile(profiles.Chrome_120),
-		tls_client.WithNotFollowRedirects(),
+		tls_client.WithClientProfile(profiles.Chrome_133),
+		// tls_client.WithNotFollowRedirects(),
 		tls_client.WithCookieJar(jar), // create cookieJar instance and pass it as argument
 	}
 

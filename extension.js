@@ -380,6 +380,8 @@ class CursorUsageIndicator extends PanelMenu.Button {
             }
 
             const responseText = new TextDecoder().decode(stdout);
+            const loggingText = new TextDecoder().decode(stderr);
+            this._log(`Go program logging: ${loggingText}`);
             this._log(`Go program response: ${responseText}`);
             
             try {
