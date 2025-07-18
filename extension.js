@@ -385,7 +385,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
     // add a function to set common headers
     // Helper method to make HTTP requests via Go program to bypass Vercel Security Checkpoint
-    async _makeHttpRequest(url, method = 'GET', customHeaders = {}, cookie = '') {
+    async _makeHttpRequest(url, method = 'GET', customHeaders = {}, cookie = '', requestBody = null) {
         try {
             const config = {
                 url: url,
@@ -406,6 +406,11 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 },
                 cookie: cookie
             };
+
+            // Add request body if provided
+            if (requestBody !== null) {
+                config.body = requestBody;
+            }
 
             const configJSON = JSON.stringify(config);
             const extensionDir = this._extension_uuid ? `/home/${GLib.get_user_name()}/.local/share/gnome-shell/extensions/${this._extension_uuid}` : GLib.get_current_dir();
@@ -492,10 +497,100 @@ class CursorUsageIndicator extends PanelMenu.Button {
             }
 
             this._usage = data;
+
+            // Get team info and user analytics
+            await this._getTeamInfo();
+            await this._getUserAnalytics();
+
             this._updateDisplay();
         } catch (error) {
             this._log('Error fetching Cursor usage data: ' + error);
             this.buttonText.set_text('Error');
+        }
+    }
+
+    async _getTeamInfo() {
+        try {
+            const cookie = this._settings.get_string('cookie');
+            if (!cookie) {
+                this._log('Cookie is not set for team info');
+                return;
+            }
+
+            const response = await this._makeHttpRequest(
+                'https://cursor.com/api/dashboard/teams',
+                'POST',
+                {
+                    'content-type': 'application/json',
+                    'origin': 'https://cursor.com',
+                    'referer': 'https://cursor.com/analytics'
+                },
+                cookie,
+                '{}'
+            );
+
+            this._log(`Received team info: ${response.body}`);
+            const teamData = JSON.parse(response.body);
+            
+            if (teamData.teams && teamData.teams.length > 0) {
+                this._teamInfo = teamData.teams[0]; // Use first team
+                this._log(`Team ID: ${this._teamInfo.id}, Team Name: ${this._teamInfo.name}`);
+            } else {
+                this._log('No teams found');
+                this._teamInfo = null;
+            }
+        } catch (error) {
+            this._log('Error fetching team info: ' + error);
+            this._teamInfo = null;
+        }
+    }
+
+    async _getUserAnalytics() {
+        try {
+            if (!this._teamInfo) {
+                this._log('No team info available for analytics');
+                this._userAnalytics = null;
+                return;
+            }
+
+            const cookie = this._settings.get_string('cookie');
+            if (!cookie) {
+                this._log('Cookie is not set for user analytics');
+                return;
+            }
+
+            // Calculate date range based on usage reset period
+            const resetStartDate = new Date(this._usage.startOfMonth);
+            const now = new Date();
+            // Set endDate to start of yesterday (00:00:00)
+            const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+            
+            const requestBody = {
+                teamId: this._teamInfo.id,
+                userId: 0,
+                startDate: resetStartDate.getTime().toString(),
+                endDate: endDate.getTime().toString()
+            };
+
+            const response = await this._makeHttpRequest(
+                'https://cursor.com/api/dashboard/get-user-analytics',
+                'POST',
+                {
+                    'content-type': 'application/json',
+                    'origin': 'https://cursor.com',
+                    'referer': 'https://cursor.com/analytics'
+                },
+                cookie,
+                JSON.stringify(requestBody)
+            );
+
+            this._log(`Received user analytics: ${response.body}`);
+            const analyticsData = JSON.parse(response.body);
+            this._userAnalytics = analyticsData;
+            this._log(`Lines rank: ${analyticsData.applyLinesRank}/${analyticsData.totalTeamMembers}, Tabs rank: ${analyticsData.tabsAcceptedRank}/${analyticsData.totalTeamMembers}`);
+        } catch (error) {
+            this._log('Error fetching user analytics: ' + error);
+            this._userAnalytics = null;
         }
     }
 
@@ -574,6 +669,9 @@ class CursorUsageIndicator extends PanelMenu.Button {
         monthlyUsage.label.text = `Premium Requests Used: ${numRequests} / ${monthlyQuota} (${usedPercent}%)`;
         this.menuLayout.addMenuItem(monthlyUsage);
 
+        // Add ranking information if available
+        this._addRankingInfo();
+
         // Add menu items for each model
         for (const [model, data] of Object.entries(this._usage)) {
             // filter entry: only if data is object and has numRequests and numTokens properties
@@ -637,6 +735,65 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
         this._log('addCommonButtons');
         this._addCommonButtons();
+    }
+
+    _addRankingInfo() {
+        // Only display ranking info if we have the data
+        if (!this._userAnalytics || !this._teamInfo) {
+            this._log('No ranking data available');
+            return;
+        }
+
+        const analytics = this._userAnalytics;
+
+        // Add separator before ranking info
+        this.menuLayout.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        // Lines of Code Accepted Ranking
+        const linesRankingItem = new PopupMenu.PopupMenuItem('', { reactive: false });
+        linesRankingItem.label.text = `Lines of Code Accepted Ranking: ${analytics.applyLinesRank} of ${analytics.totalTeamMembers}`;
+        this.menuLayout.addMenuItem(linesRankingItem);
+
+        const linesDetailsItem = new PopupMenu.PopupMenuItem('', { reactive: false });
+        linesDetailsItem.label.text = `Your Total Lines of Code Accepted:   ${analytics.totalApplyLines.toLocaleString()}\nTeam Average (per active user in period): ${analytics.teamAverageApplyLines.toLocaleString()}`;
+        this.menuLayout.addMenuItem(linesDetailsItem);
+
+        // Add separator between the two ranking sections
+        this.menuLayout.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+
+        // Tabs Accepted Ranking
+        const tabsRankingItem = new PopupMenu.PopupMenuItem('', { reactive: false });
+        tabsRankingItem.label.text = `Tabs Accepted Ranking: ${analytics.tabsAcceptedRank} of ${analytics.totalTeamMembers}`;
+        this.menuLayout.addMenuItem(tabsRankingItem);
+
+        const tabsDetailsItem = new PopupMenu.PopupMenuItem('', { reactive: false });
+        tabsDetailsItem.label.text = `Your Total Tabs Accepted: ${analytics.totalTabsAccepted.toLocaleString()}\nTeam Average (per active user in period): ${analytics.teamAverageTabsAccepted.toLocaleString()}`;
+        this.menuLayout.addMenuItem(tabsDetailsItem);
+
+        // Add click events to copy ranking text to clipboard
+        linesRankingItem.connect('activate', () => {
+            const copyText = `Lines of Code Accepted Ranking: ${analytics.applyLinesRank} of ${analytics.totalTeamMembers}\nYour Total Lines of Code Accepted: ${analytics.totalApplyLines.toLocaleString()}\nTeam Average: ${analytics.teamAverageApplyLines.toLocaleString()}`;
+            this._log(`Copied lines ranking to clipboard: ${copyText}`);
+            St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, copyText);
+        });
+
+        linesDetailsItem.connect('activate', () => {
+            const copyText = `Lines of Code Accepted Ranking: ${analytics.applyLinesRank} of ${analytics.totalTeamMembers}\nYour Total Lines of Code Accepted: ${analytics.totalApplyLines.toLocaleString()}\nTeam Average: ${analytics.teamAverageApplyLines.toLocaleString()}`;
+            this._log(`Copied lines details to clipboard: ${copyText}`);
+            St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, copyText);
+        });
+
+        tabsRankingItem.connect('activate', () => {
+            const copyText = `Tabs Accepted Ranking: ${analytics.tabsAcceptedRank} of ${analytics.totalTeamMembers}\nYour Total Tabs Accepted: ${analytics.totalTabsAccepted.toLocaleString()}\nTeam Average: ${analytics.teamAverageTabsAccepted.toLocaleString()}`;
+            this._log(`Copied tabs ranking to clipboard: ${copyText}`);
+            St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, copyText);
+        });
+
+        tabsDetailsItem.connect('activate', () => {
+            const copyText = `Tabs Accepted Ranking: ${analytics.tabsAcceptedRank} of ${analytics.totalTeamMembers}\nYour Total Tabs Accepted: ${analytics.totalTabsAccepted.toLocaleString()}\nTeam Average: ${analytics.teamAverageTabsAccepted.toLocaleString()}`;
+            this._log(`Copied tabs details to clipboard: ${copyText}`);
+            St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, copyText);
+        });
     }
 
     destroy() {

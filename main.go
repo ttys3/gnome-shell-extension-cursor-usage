@@ -20,6 +20,7 @@ type Config struct {
 	Method  string            `json:"method"`
 	Headers map[string]string `json:"headers"`
 	Cookie  string            `json:"cookie"`
+	Body    string            `json:"body"`
 }
 
 func main() {
@@ -56,7 +57,13 @@ func main() {
 		method = "GET"
 	}
 
-	req, err := http.NewRequest(method, config.URL, nil)
+	var requestBody io.Reader = nil
+	if config.Body != "" {
+		requestBody = strings.NewReader(config.Body)
+		log.Printf("Request body: %s", config.Body)
+	}
+
+	req, err := http.NewRequest(method, config.URL, requestBody)
 	if err != nil {
 		log.Fatalf("Error creating request: %v", err)
 	}
