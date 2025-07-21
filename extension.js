@@ -559,16 +559,17 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 return;
             }
 
-            // Calculate date range based on usage reset period
-            const resetStartDate = new Date(this._usage.startOfMonth);
+            // Calculate recent 7 day
             const now = new Date();
             // Set endDate to start of yesterday (00:00:00)
             const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-            
+            // Set startDate to 7 days before endDate (00:00:00)
+            const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 8);
+
             const requestBody = {
                 teamId: this._teamInfo.id,
                 userId: 0,
-                startDate: resetStartDate.getTime().toString(),
+                startDate: startDate.getTime().toString(),
                 endDate: endDate.getTime().toString()
             };
 
