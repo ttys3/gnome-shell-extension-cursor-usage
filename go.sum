@@ -6,8 +6,8 @@ github.com/bogdanfinn/tls-client v1.10.0 h1:IZkg338oSg/NEeP3GcKuxjiyuEAvO31LpJ//
 github.com/bogdanfinn/tls-client v1.10.0/go.mod h1:kZluoa4Y4AYK115Me6yvVxw6uQU2i6FBgcwDdvtjOGs=
 github.com/bogdanfinn/utls v1.7.3-barnius h1:2p9riIoGHI85eVDebhHm58qLokyJ8bFEn26wg24S1uU=
 github.com/bogdanfinn/utls v1.7.3-barnius/go.mod h1:SUn0CoHGVp/akGNuaqh99yvovu64PCP2LbWd3Z/Laic=
-github.com/cloudflare/circl v1.5.0 h1:hxIWksrX6XN5a1L2TI/h53AGPhNHoUBo+TD1ms9+pys=
-github.com/cloudflare/circl v1.5.0/go.mod h1:uddAzsPgqdMAYatqJ0lsjX1oECcQLIlRpzZh3pJrofs=
+github.com/cloudflare/circl v1.6.1 h1:zqIqSPIndyBh1bjLVVDHMPpVKqp8Su/V+6MeDzzQBQ0=
+github.com/cloudflare/circl v1.6.1/go.mod h1:uddAzsPgqdMAYatqJ0lsjX1oECcQLIlRpzZh3pJrofs=
 github.com/klauspost/compress v1.17.11 h1:In6xLpyWOi1+C7tXUUWv2ot1QvBjxevKAaI6IXrJmUc=
 github.com/klauspost/compress v1.17.11/go.mod h1:pMDklpSncoRMuLFrf1W9Ss9KT+0rH90U12bZKk7uwG0=
 github.com/tam7t/hpkp v0.0.0-20160821193359-2b70b4024ed5 h1:YqAladjX7xpA6BM04leXMWAEjS0mTZ5kUU9KRBriQJc=
