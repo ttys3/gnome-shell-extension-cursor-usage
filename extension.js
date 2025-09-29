@@ -220,6 +220,61 @@ class CursorUsageIndicator extends PanelMenu.Button {
         }
     }
 
+    async _getMachineHash() {
+        try {
+            let result = await spawnCommandAsync('cat /etc/machine-id');
+            if (!result.success) {
+                this._log('Failed to get machine ID: ' + result.stderr);
+                return null;
+            }
+            const machineId = result.stdout.trim();
+            if (!machineId) {
+                this._log('Machine ID is empty');
+                return null;
+            }
+            
+            // Generate SHA256 hash from machine ID
+            result = await spawnCommandAsync(`echo -n '${machineId}' | sha256sum | cut -d' ' -f1`);
+            if (!result.success) {
+                this._log('Failed to generate hash: ' + result.stderr);
+                return null;
+            }
+            
+            const hash = result.stdout.trim();
+            this._log('Generated machine hash: ' + hash);
+            return hash;
+        } catch (error) {
+            this._log('Error getting machine hash: ' + error);
+            return null;
+        }
+    }
+
+    _detectPlatform() {
+        try {
+            // Get architecture using uname
+            const result = GLib.spawn_command_line_sync('uname -m');
+            if (!result[0]) {
+                this._log('Failed to detect architecture');
+                return 'linux-x64'; // Default fallback
+            }
+            
+            const arch = new TextDecoder().decode(result[1]).trim();
+            this._log('Detected architecture: ' + arch);
+            
+            if (arch === 'x86_64') {
+                return 'linux-x64';
+            } else if (arch === 'aarch64' || arch === 'arm64') {
+                return 'linux-arm64';
+            } else {
+                this._log('Unsupported architecture: ' + arch + ', defaulting to linux-x64');
+                return 'linux-x64';
+            }
+        } catch (error) {
+            this._log('Error detecting platform: ' + error);
+            return 'linux-x64'; // Default fallback
+        }
+    }
+
     _parseJsonVersion(jsonText) {
         try {
             // Parse JSON response
@@ -244,6 +299,24 @@ class CursorUsageIndicator extends PanelMenu.Button {
         }
     }
 
+    _parseNewJsonVersion(jsonText) {
+        try {
+            // Parse JSON response from new API
+            const jsonData = JSON.parse(jsonText);
+            
+            // Extract version directly from the "version" field
+            if (jsonData && jsonData.version) {
+                this._log('Found version in new API response: ' + jsonData.version);
+                return jsonData.version;
+            }
+            this._log('Could not find version in new API JSON response');
+            return null;
+        } catch (error) {
+            this._log('Error parsing new JSON version: ' + error);
+            return null;
+        }
+    }
+
     async _checkForUpdates() {
         this._log('Checking for updates');
         try {
@@ -257,16 +330,49 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 return;
             }
 
-            // Make request via Go program to bypass Vercel Security Checkpoint
+            // Get machine hash based on machine ID
+            const machineHash = await this._getMachineHash();
+            if (!machineHash) {
+                this._log('Failed to get machine hash');
+                return;
+            }
+
+            // Detect platform architecture
+            const platform = this._detectPlatform();
+            this._log(`Platform: ${platform}, Version: ${localVersion}, Hash: ${machineHash}`);
+
+            // Use new API endpoint
+            const apiUrl = `https://api2.cursor.sh/updates/api/update/${platform}/cursor/${localVersion}/${machineHash}/prerelease`;
+            this._log(`API URL: ${apiUrl}`);
+
+            // Make request with new headers
             const response = await this._makeHttpRequest(
-                'https://www.cursor.com/api/download?platform=linux-x64&releaseTrack=latest',
-                'GET'
+                apiUrl,
+                'GET',
+                {
+                    'host': 'api2.cursor.sh',
+                    'user-agent': `Cursor/${localVersion}`,
+                    'sec-fetch-site': 'none',
+                    'sec-fetch-mode': 'no-cors',
+                    'sec-fetch-dest': 'empty',
+                    'accept-language': 'en-US',
+                    'priority': 'u=4, i'
+                }
             );
+
+            // Handle different HTTP status codes
+            if (response.status === 204) {
+                this._log(`No update available. Current version ${localVersion} is up to date.`);
+                return;
+            } else if (response.status !== 200) {
+                this._log(`API returned HTTP status ${response.status}: ${response.body}`);
+                return;
+            }
 
             const jsonText = response.body;
             
-            // Parse version from YAML text
-            const latestVersion = this._parseJsonVersion(jsonText);
+            // Parse version from new JSON format
+            const latestVersion = this._parseNewJsonVersion(jsonText);
             if (!latestVersion) {
                 this._log('Failed to parse latest version from JSON');
                 return;
