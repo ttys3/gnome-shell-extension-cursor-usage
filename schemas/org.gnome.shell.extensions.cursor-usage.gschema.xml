@@ -1,14 +1,5 @@
 <schemalist>
   <schema id="org.gnome.shell.extensions.cursor-usage" path="/org/gnome/shell/extensions/cursor-usage/">
-    <key name="cookie" type="s">
-      <default>""</default>
-      <summary>Cookie for API requests</summary>
-      <description>
-        The cookie value to be used in API requests for authentication.
-        The cookie should be in format: WorkosCursorSessionToken=user_id::jwt_token
-        You can find it in browser devtools after login to cursor.com
-      </description>
-    </key>
     <key name="user" type="s">
       <default>"{}"</default>
       <summary>User information</summary>

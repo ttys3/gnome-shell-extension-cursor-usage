@@ -57,6 +57,77 @@ function spawnCommandAsync(commandLine) {
     });
 }
 
+// Compute cookie from Cursor's SQLite database
+async function computeCookieFromSQLite(logFunc) {
+    try {
+        const homeDir = GLib.get_home_dir();
+        const dbPath = `${homeDir}/.config/Cursor/User/globalStorage/state.vscdb`;
+        
+        // Check if database file exists
+        const dbFile = Gio.File.new_for_path(dbPath);
+        if (!dbFile.query_exists(null)) {
+            if (logFunc) logFunc(`Cursor database not found at: ${dbPath}`);
+            return null;
+        }
+        
+        // Get access token
+        const tokenCmd = `sqlite3 -readonly "${dbPath}" "SELECT value FROM ItemTable WHERE key='cursorAuth/accessToken';"`;
+        const tokenResult = await spawnCommandAsync(tokenCmd);
+        
+        if (!tokenResult.success || !tokenResult.stdout.trim()) {
+            if (logFunc) logFunc(`Failed to get access token: ${tokenResult.stderr}`);
+            return null;
+        }
+        
+        const accessToken = tokenResult.stdout.trim();
+        if (logFunc) logFunc(`Access token retrieved (length: ${accessToken.length})`);
+        
+        // Get user ID from statsigBootstrap
+        const userIdCmd = `sqlite3 -readonly "${dbPath}" "SELECT value FROM ItemTable WHERE key='workbench.experiments.statsigBootstrap';"`;
+        const userIdResult = await spawnCommandAsync(userIdCmd);
+        
+        if (!userIdResult.success || !userIdResult.stdout.trim()) {
+            if (logFunc) logFunc(`Failed to get statsigBootstrap: ${userIdResult.stderr}`);
+            return null;
+        }
+        
+        // Parse JSON to extract user ID
+        let userId = null;
+        try {
+            const statsigData = JSON.parse(userIdResult.stdout.trim());
+            if (statsigData && statsigData.user && statsigData.user.userID) {
+                userId = statsigData.user.userID;
+            }
+        } catch (parseError) {
+            if (logFunc) logFunc(`Failed to parse statsigBootstrap JSON: ${parseError}`);
+            return null;
+        }
+        
+        if (!userId) {
+            if (logFunc) logFunc('User ID not found in statsigBootstrap');
+            return null;
+        }
+        
+        // Strip 'auth0|' prefix if present
+        if (userId.startsWith('auth0|')) {
+            userId = userId.substring(6); // Remove 'auth0|' prefix
+        }
+        
+        if (logFunc) logFunc(`User ID extracted: ${userId}`);
+        
+        // Construct cookie: WorkosCursorSessionToken=userId%3A%3AaccessToken
+        // %3A%3A is URL-encoded ::
+        const cookie = `WorkosCursorSessionToken=${userId}%3A%3A${accessToken}`;
+        
+        if (logFunc) logFunc('Cookie computed successfully');
+        return cookie;
+        
+    } catch (error) {
+        if (logFunc) logFunc(`Error computing cookie from SQLite: ${error}`);
+        return null;
+    }
+}
+
 const CursorUsageIndicator = GObject.registerClass(
 class CursorUsageIndicator extends PanelMenu.Button {
     _init(uuid, settings) {
@@ -101,11 +172,6 @@ class CursorUsageIndicator extends PanelMenu.Button {
         const titleItem = new PopupMenu.PopupMenuItem('Cursor Usage', { reactive: false });
         this.menuLayout.addMenuItem(titleItem);
 
-        // add preferences button if no settings are set
-        if (!this._settings.get_string('cookie')) {
-            this._addPreferencesButton();
-        }
-
         this.menu.addMenuItem(this.menuLayout);
 
         // Initialize data
@@ -117,10 +183,6 @@ class CursorUsageIndicator extends PanelMenu.Button {
         this._settingsChangedId = this._connectSettingChange('update-interval', this._restartTimer.bind(this));
         this._monthlyQuotaChangedId = this._connectSettingChange('monthly-quota', this._updateUsage.bind(this));
         this._userIdChangedId = this._connectSettingChange('user-id', this._updateUsage.bind(this));
-        this._cookieChangedId = this._connectSettingChange('cookie', () => {
-            this._updateUsage();
-            this._updateUserInfo();
-        });
         this._debugModeChangedId = this._connectSettingChange('debug-mode', () => {
             this._log('Debug mode changed to: ' + this._settings.get_boolean('debug-mode'));
         });
@@ -571,10 +633,10 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
     async _updateUsageSummary() {
         try {
-            // Add cookie from settings
-            const cookie = this._settings.get_string('cookie');
+            // Compute cookie from SQLite database
+            const cookie = await computeCookieFromSQLite(this._log.bind(this));
             if (!cookie) {
-                this._log('Cookie is not set');
+                this._log('Failed to compute cookie from Cursor database');
                 return null;
             }
 
@@ -606,10 +668,11 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
     async _updateUsage() {
         try {
-            // Add cookie from settings
-            const cookie = this._settings.get_string('cookie');
+            // Compute cookie from SQLite database
+            const cookie = await computeCookieFromSQLite(this._log.bind(this));
             if (!cookie) {
-                this._log('Cookie is not set');
+                this._log('Failed to compute cookie from Cursor database');
+                this.buttonText.set_text('No Cookie');
                 return;
             }
 
@@ -679,9 +742,10 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
     async _getTeamInfo() {
         try {
-            const cookie = this._settings.get_string('cookie');
+            // Compute cookie from SQLite database
+            const cookie = await computeCookieFromSQLite(this._log.bind(this));
             if (!cookie) {
-                this._log('Cookie is not set for team info');
+                this._log('Failed to compute cookie for team info');
                 return;
             }
 
@@ -721,9 +785,10 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 return;
             }
 
-            const cookie = this._settings.get_string('cookie');
+            // Compute cookie from SQLite database
+            const cookie = await computeCookieFromSQLite(this._log.bind(this));
             if (!cookie) {
-                this._log('Cookie is not set for user analytics');
+                this._log('Failed to compute cookie for user analytics');
                 return;
             }
 
@@ -1089,11 +1154,6 @@ class CursorUsageIndicator extends PanelMenu.Button {
             this._log('Disconnecting user-id settings signal');
             this._settings.disconnect(this._userIdChangedId);
         }
-        // Disconnect cookie settings signal
-        if (this._cookieChangedId) {
-            this._log('Disconnecting cookie settings signal');
-            this._settings.disconnect(this._cookieChangedId);
-        }
         // Disconnect debug-mode settings signal
         if (this._debugModeChangedId) {
             this._log('Disconnecting debug-mode settings signal');
@@ -1162,10 +1222,10 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
     async _updateUserInfo() {
         try {
-            // Check if cookie exists
-            const cookie = this._settings.get_string('cookie');
+            // Compute cookie from SQLite database
+            const cookie = await computeCookieFromSQLite(this._log.bind(this));
             if (!cookie) {
-                this._log('Cookie is not set, skipping user info update');
+                this._log('Failed to compute cookie, skipping user info update');
                 return;
             }
 

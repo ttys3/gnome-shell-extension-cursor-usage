@@ -185,7 +185,7 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
 
     fillPreferencesWindow(window) {
         // Set default window size
-        window.set_default_size(600, 730);
+        window.set_default_size(600, 550);
 
         // Create a preferences page, with a single group
         const page = new Adw.PreferencesPage({
@@ -229,64 +229,6 @@ export default class CursorUsagePreferences extends ExtensionPreferences {
         });
 
         group.add(widget);
-
-        let cssProvider = new Gtk.CssProvider();
-        cssProvider.load_from_data(`
-            textview {
-                border: 2px solid black;
-                border-radius: 4px;
-                padding: 4px;
-            }
-            textview.error {
-                background-color: #ffd7d7;
-                border-color: red;
-            }
-
-            entry.error {
-                background-color: #ffd7d7;
-                border-color: red;
-            }
-        `, -1);
-
-        // Cookie input
-        let cookieEntry = new Gtk.TextView({
-            wrap_mode: Gtk.WrapMode.WORD_CHAR,
-            monospace: true
-        });
-        
-        cookieEntry.get_style_context().add_provider(
-            cssProvider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-        );
-        
-        let scrollWindow = new Gtk.ScrolledWindow({
-            hscrollbar_policy: Gtk.PolicyType.NEVER,
-            vscrollbar_policy: Gtk.PolicyType.AUTOMATIC,
-            min_content_height: 160
-        });
-        scrollWindow.set_child(cookieEntry);
-        
-        let buffer = cookieEntry.get_buffer();
-        buffer.set_text(settings.get_string('cookie'), -1);
-        
-        buffer.connect('changed', () => {
-            let [start, end] = buffer.get_bounds();
-            let text = buffer.get_text(start, end, false);
-            
-            if (!text.startsWith('WorkosCursorSessionToken=user_')) {
-                cookieEntry.add_css_class('error');
-                return;
-            }
-            
-            cookieEntry.remove_css_class('error');
-            settings.set_string('cookie', text);
-        });
-
-        widget.append(this.createLabeledField(
-            'API Cookie',
-            'The authentication cookie from cursor.com. You can find it in browser devtools after login. The cookie should be in format: WorkosCursorSessionToken=user_id::jwt_token',
-            scrollWindow
-        ));
 
         // Monthly quota setting
         widget.append(this.createLabeledField(
