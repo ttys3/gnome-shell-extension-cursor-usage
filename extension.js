@@ -108,15 +108,17 @@ async function computeCookieFromSQLite(logFunc) {
             return null;
         }
         
-        // Verify and strip 'auth0|' prefix
-        if (!userId.startsWith('auth0|')) {
-            if (logFunc) logFunc(`Invalid user ID format (expected 'auth0|' prefix): ${userId}`);
+        // Verify and strip 'vendor|' prefix (e.g., 'auth0|', 'github|', etc.)
+        const separatorIndex = userId.indexOf('|');
+        if (separatorIndex === -1) {
+            if (logFunc) logFunc(`Invalid user ID format (expected 'vendor|' format): ${userId}`);
             return null;
         }
         
-        userId = userId.substring(6); // Remove 'auth0|' prefix
+        const vendor = userId.substring(0, separatorIndex);
+        userId = userId.substring(separatorIndex + 1); // Remove 'vendor|' prefix
         
-        if (logFunc) logFunc(`User ID extracted: ${userId}`);
+        if (logFunc) logFunc(`User ID extracted from ${vendor}: ${userId}`);
         
         // Construct cookie: WorkosCursorSessionToken=userId%3A%3AaccessToken
         // %3A%3A is URL-encoded ::
