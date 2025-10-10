@@ -668,9 +668,9 @@ class CursorUsageIndicator extends PanelMenu.Button {
             // Calculate recent 7 day
             const now = new Date();
             // Set endDate to start of yesterday (00:00:00)
-            const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+            const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             // Set startDate to 7 days before endDate (00:00:00)
-            const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 8);
+            const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
 
             const requestBody = {
                 teamId: this._teamInfo.id,
@@ -685,7 +685,7 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 {
                     'content-type': 'application/json',
                     'origin': 'https://cursor.com',
-                    'referer': 'https://cursor.com/analytics'
+                    'referer': 'https://cursor.com/dashboard?tab=analytics'
                 },
                 cookie,
                 JSON.stringify(requestBody)
