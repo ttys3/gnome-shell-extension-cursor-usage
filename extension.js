@@ -110,6 +110,8 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
         // Initialize data
         this._usage = {};
+        this._usageSummary = null;
+        this._isUsdBilling = false;
         
         // Add settings change listeners
         this._settingsChangedId = this._connectSettingChange('update-interval', this._restartTimer.bind(this));
@@ -567,6 +569,41 @@ class CursorUsageIndicator extends PanelMenu.Button {
         message.request_headers.append('sec-fetch-site', 'same-origin');
     }
 
+    async _updateUsageSummary() {
+        try {
+            // Add cookie from settings
+            const cookie = this._settings.get_string('cookie');
+            if (!cookie) {
+                this._log('Cookie is not set');
+                return null;
+            }
+
+            // Make request via Go program to bypass Vercel Security Checkpoint
+            const response = await this._makeHttpRequest(
+                'https://cursor.com/api/usage-summary',
+                'GET',
+                {
+                    'referer': 'https://cursor.com/cn/dashboard?tab=usage'
+                },
+                cookie
+            );
+
+            this._log(`Received usage summary data: ${response.body}`);
+            const data = JSON.parse(response.body);
+            
+            if (response.status === 401 || data.statusCode === 401) {
+                this._log('Unauthorized, invalid cookie');
+                this.buttonText.set_text('Unauthorized');
+                return null;
+            }
+
+            return data;
+        } catch (error) {
+            this._log('Error fetching usage summary: ' + error);
+            return null;
+        }
+    }
+
     async _updateUsage() {
         try {
             // Add cookie from settings
@@ -575,6 +612,31 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 this._log('Cookie is not set');
                 return;
             }
+
+            // First try the new usage-summary API
+            const summaryData = await this._updateUsageSummary();
+            
+            // Check if user is using the new billing model (USD based)
+            if (summaryData && summaryData.individualUsage && 
+                summaryData.individualUsage.plan && 
+                summaryData.individualUsage.plan.limit && 
+                summaryData.individualUsage.plan.limit > 0) {
+                
+                this._log('Using new billing model (USD based)');
+                this._usageSummary = summaryData;
+                this._isUsdBilling = true;
+                
+                // Get team info and user analytics
+                await this._getTeamInfo();
+                await this._getUserAnalytics();
+                
+                this._updateDisplayUsd();
+                return;
+            }
+
+            // Fall back to old billing model (request count based)
+            this._log('Using old billing model (request count based)');
+            this._isUsdBilling = false;
 
             // Extract user_id from cookie
             const decodedCookie = decodeURIComponent(cookie);
@@ -699,6 +761,110 @@ class CursorUsageIndicator extends PanelMenu.Button {
             this._log('Error fetching user analytics: ' + error);
             this._userAnalytics = null;
         }
+    }
+
+    _updateDisplayUsd() {
+        this._log('Updating USD display');
+        
+        const planUsage = this._usageSummary.individualUsage.plan;
+        const usedUsd = (planUsage.used / 100).toFixed(2);
+        const limitUsd = (planUsage.limit / 100).toFixed(2);
+        const remainingUsd = (planUsage.remaining / 100).toFixed(2);
+        
+        // Update top bar text with USD usage
+        this.buttonText.set_text(`$${usedUsd} / $${limitUsd}`);
+
+        // Calculate remaining quota percentage
+        const remainingPercent = Math.floor((planUsage.remaining / planUsage.limit) * 100);
+        const usedPercent = Math.floor((planUsage.used / planUsage.limit) * 100);
+
+        // Update icon based on remaining percentage
+        let iconName;
+        if (remainingPercent >= 90) {
+            iconName = 'battery-level-100-symbolic';
+        } else if (remainingPercent >= 80) {
+            iconName = 'battery-level-90-symbolic';
+        } else if (remainingPercent >= 70) {
+            iconName = 'battery-level-80-symbolic';
+        } else if (remainingPercent >= 60) {
+            iconName = 'battery-level-70-symbolic';
+        } else if (remainingPercent >= 50) {
+            iconName = 'battery-level-60-symbolic';
+        } else if (remainingPercent >= 40) {
+            iconName = 'battery-level-50-symbolic';
+        } else if (remainingPercent >= 30) {
+            iconName = 'battery-level-40-symbolic';
+        } else if (remainingPercent >= 20) {
+            iconName = 'battery-level-30-symbolic';
+        } else if (remainingPercent >= 10) {
+            iconName = 'battery-low-symbolic';
+        } else {
+            iconName = 'battery-action-symbolic';
+        }
+        
+        this.refreshButton.child.icon_name = iconName;
+
+        this._log(`_updateDisplayUsd used: $${usedUsd}, limit: $${limitUsd}, remaining: $${remainingUsd}, Used Percent: ${usedPercent}, Remaining Percent: ${remainingPercent}, Icon: ${iconName}`);
+
+        this._log('menu removeAll');
+        // Clear existing menu items
+        this.menuLayout.removeAll();
+
+        const titleItem = new PopupMenu.PopupMenuItem('Cursor Usage', { reactive: false });
+        this.menuLayout.addMenuItem(titleItem);
+
+        // Add membership type and limit type in same row
+        const membershipItem = new PopupMenu.PopupMenuItem('', { reactive: false });
+        membershipItem.label.text = `Type: ${this._usageSummary.membershipType} (${this._usageSummary.limitType})`;
+        this.menuLayout.addMenuItem(membershipItem);
+
+        // Billing cycle dates
+        const startDate = new Date(this._usageSummary.billingCycleStart);
+        const endDate = new Date(this._usageSummary.billingCycleEnd);
+        
+        // Calculate days passed percentage in current billing cycle
+        const today = new Date();
+        const daysPassed = Math.floor((today - startDate) / (1000 * 60 * 60 * 24)) + 1;
+        const totalDays = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
+        const daysPassedPercent = Math.floor((daysPassed / totalDays) * 100);
+
+        const startDateFormatted = dateToRFC3339(startDate);
+        const endDateFormatted = dateToRFC3339(endDate);
+        const billingCycleItem = new PopupMenu.PopupMenuItem('', { reactive: false });
+        billingCycleItem.label.text = `Billing Start: ${startDateFormatted}\nBilling End: ${endDateFormatted}\nDays Passed: ${daysPassed}/${totalDays} (${daysPassedPercent}%)`;
+        this.menuLayout.addMenuItem(billingCycleItem);
+
+        // Add usage information
+        const usageItem = new PopupMenu.PopupMenuItem('', { reactive: false });
+        usageItem.label.text = `Plan Usage: $${usedUsd} / $${limitUsd} (${usedPercent}%)\nRemaining: $${remainingUsd}`;
+        this.menuLayout.addMenuItem(usageItem);
+
+        // Add breakdown information if available
+        if (planUsage.breakdown) {
+            const breakdown = planUsage.breakdown;
+            const includedUsd = (breakdown.included / 100).toFixed(2);
+            const bonusUsd = (breakdown.bonus / 100).toFixed(2);
+            const totalUsd = (breakdown.total / 100).toFixed(2);
+            
+            const breakdownItem = new PopupMenu.PopupMenuItem('', { reactive: false });
+            breakdownItem.label.text = `Breakdown:\n  Included: $${includedUsd}\n  Bonus: $${bonusUsd}\n  Total: $${totalUsd}`;
+            this.menuLayout.addMenuItem(breakdownItem);
+        }
+
+        // Add on-demand usage if available
+        const onDemand = this._usageSummary.individualUsage.onDemand;
+        if (onDemand && onDemand.used > 0) {
+            const onDemandUsed = (onDemand.used / 100).toFixed(2);
+            const onDemandItem = new PopupMenu.PopupMenuItem('', { reactive: false });
+            onDemandItem.label.text = `On-Demand Usage: $${onDemandUsed}`;
+            this.menuLayout.addMenuItem(onDemandItem);
+        }
+
+        // Add ranking information if available
+        this._addRankingInfo();
+
+        this._log('addCommonButtons');
+        this._addCommonButtons();
     }
 
     _updateDisplay() {
