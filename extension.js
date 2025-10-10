@@ -108,10 +108,13 @@ async function computeCookieFromSQLite(logFunc) {
             return null;
         }
         
-        // Strip 'auth0|' prefix if present
-        if (userId.startsWith('auth0|')) {
-            userId = userId.substring(6); // Remove 'auth0|' prefix
+        // Verify and strip 'auth0|' prefix
+        if (!userId.startsWith('auth0|')) {
+            if (logFunc) logFunc(`Invalid user ID format (expected 'auth0|' prefix): ${userId}`);
+            return null;
         }
+        
+        userId = userId.substring(6); // Remove 'auth0|' prefix
         
         if (logFunc) logFunc(`User ID extracted: ${userId}`);
         
