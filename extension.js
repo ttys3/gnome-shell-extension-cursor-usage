@@ -904,6 +904,25 @@ class CursorUsageIndicator extends PanelMenu.Button {
         membershipItem.label.text = `Type: ${this._usageSummary.membershipType} (${this._usageSummary.limitType})`;
         this.menuLayout.addMenuItem(membershipItem);
 
+        // Display pricing model information
+        const pricingItem = new PopupMenu.PopupMenuItem('', { reactive: false });
+        const pricingModel = this._isUsdBilling ? 'New Pricing (USD)' : 'Legacy Pricing';
+        pricingItem.label.text = `Pricing Model: ${pricingModel}`;
+        this.menuLayout.addMenuItem(pricingItem);
+
+        // Add click event to copy membership and pricing info to clipboard
+        membershipItem.connect('activate', () => {
+            const copyText = `Membership Type: ${this._usageSummary.membershipType} (${this._usageSummary.limitType})`;
+            this._log(`Copied membership info to clipboard: ${copyText}`);
+            St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, copyText);
+        });
+
+        pricingItem.connect('activate', () => {
+            const copyText = `Pricing Model: ${pricingModel}`;
+            this._log(`Copied pricing info to clipboard: ${copyText}`);
+            St.Clipboard.get_default().set_text(St.ClipboardType.CLIPBOARD, copyText);
+        });
+
         // Billing cycle dates
         const startDate = new Date(this._usageSummary.billingCycleStart);
         const endDate = new Date(this._usageSummary.billingCycleEnd);
