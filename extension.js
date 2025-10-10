@@ -634,15 +634,38 @@ class CursorUsageIndicator extends PanelMenu.Button {
         message.request_headers.append('sec-fetch-site', 'same-origin');
     }
 
-    async _updateUsageSummary() {
+    async _checkIsOnNewPricing(cookie) {
         try {
-            // Compute cookie from SQLite database
-            const cookie = await computeCookieFromSQLite(this._log.bind(this));
-            if (!cookie) {
-                this._log('Failed to compute cookie from Cursor database');
+            // Check if user is on new pricing model via dedicated API
+            const response = await this._makeHttpRequest(
+                'https://cursor.com/api/dashboard/is-on-new-pricing',
+                'POST',
+                {
+                    'content-type': 'application/json',
+                    'origin': 'https://cursor.com',
+                    'referer': 'https://cursor.com/cn/dashboard?tab=analytics'
+                },
+                cookie,
+                '{}'
+            );
+
+            this._log(`Received pricing check data: ${response.body}`);
+            const data = JSON.parse(response.body);
+            
+            if (response.status === 401 || data.statusCode === 401) {
+                this._log('Unauthorized when checking pricing model');
                 return null;
             }
 
+            return data.isOnNewPricing === true;
+        } catch (error) {
+            this._log('Error checking pricing model: ' + error);
+            return null;
+        }
+    }
+
+    async _updateUsageSummary(cookie) {
+        try {
             // Make request via Go program to bypass Vercel Security Checkpoint
             const response = await this._makeHttpRequest(
                 'https://cursor.com/api/usage-summary',
@@ -679,79 +702,81 @@ class CursorUsageIndicator extends PanelMenu.Button {
                 return;
             }
 
-            // First try the new usage-summary API
-            const summaryData = await this._updateUsageSummary();
+            // Check which pricing model the user is on
+            const isOnNewPricing = await this._checkIsOnNewPricing(cookie);
             
-            // Check if user is using the new billing model (USD based)
-            if (summaryData && summaryData.individualUsage && 
-                summaryData.individualUsage.plan && 
-                summaryData.individualUsage.plan.limit && 
-                summaryData.individualUsage.plan.limit > 0) {
-                
-                this._log('Using new billing model (USD based)');
-                this._usageSummary = summaryData;
+            if (isOnNewPricing === null) {
+                this._log('Failed to check pricing model, unable to proceed');
+                this.buttonText.set_text('Error');
+                return;
+            }
+
+            if (isOnNewPricing) {
+                // User is on new billing model (USD based)
+                this._log('User is on new pricing model (USD based)');
                 this._isUsdBilling = true;
                 
+                const summaryData = await this._updateUsageSummary(cookie);
+                if (!summaryData) {
+                    this._log('Failed to fetch usage summary');
+                    this.buttonText.set_text('Error');
+                    return;
+                }
+                
+                this._usageSummary = summaryData;
+                
                 // Get team info and user analytics
-                await this._getTeamInfo();
-                await this._getUserAnalytics();
+                await this._getTeamInfo(cookie);
+                await this._getUserAnalytics(cookie);
                 
                 this._updateDisplayUsd();
-                return;
+            } else {
+                // User is on old billing model (request count based)
+                this._log('User is on old pricing model (request count based)');
+                this._isUsdBilling = false;
+
+                // Extract user_id from cookie
+                const decodedCookie = decodeURIComponent(cookie);
+                const user_id = decodedCookie.split('=')[1].split('::')[0];
+                if (!user_id) {
+                    this._log('User ID is not set');
+                    return;
+                }
+                this._log(`User ID: ${user_id}`);
+
+                // Make request via Go program to bypass Vercel Security Checkpoint
+                const response = await this._makeHttpRequest(
+                    `https://www.cursor.com/api/usage?user=${user_id}`,
+                    'GET',
+                    {},
+                    cookie
+                );
+
+                this._log(`Received data: ${response.body}`);
+                const data = JSON.parse(response.body);
+                
+                if (response.status === 401 || data.statusCode === 401) {
+                    this._log('Unauthorized, invalid cookie');
+                    this.buttonText.set_text('Unauthorized');
+                    return;
+                }
+
+                this._usage = data;
+
+                // Get team info and user analytics
+                await this._getTeamInfo(cookie);
+                await this._getUserAnalytics(cookie);
+
+                this._updateDisplay();
             }
-
-            // Fall back to old billing model (request count based)
-            this._log('Using old billing model (request count based)');
-            this._isUsdBilling = false;
-
-            // Extract user_id from cookie
-            const decodedCookie = decodeURIComponent(cookie);
-            const user_id = decodedCookie.split('=')[1].split('::')[0];
-            if (!user_id) {
-                this._log('User ID is not set');
-                return;
-            }
-            this._log(`User ID: ${user_id}`);
-
-            // Make request via Go program to bypass Vercel Security Checkpoint
-            const response = await this._makeHttpRequest(
-                `https://www.cursor.com/api/usage?user=${user_id}`,
-                'GET',
-                {},
-                cookie
-            );
-
-            this._log(`Received data: ${response.body}`);
-            const data = JSON.parse(response.body);
-            
-            if (response.status === 401 || data.statusCode === 401) {
-                this._log('Unauthorized, invalid cookie');
-                this.buttonText.set_text('Unauthorized');
-                return;
-            }
-
-            this._usage = data;
-
-            // Get team info and user analytics
-            await this._getTeamInfo();
-            await this._getUserAnalytics();
-
-            this._updateDisplay();
         } catch (error) {
             this._log('Error fetching Cursor usage data: ' + error);
             this.buttonText.set_text('Error');
         }
     }
 
-    async _getTeamInfo() {
+    async _getTeamInfo(cookie) {
         try {
-            // Compute cookie from SQLite database
-            const cookie = await computeCookieFromSQLite(this._log.bind(this));
-            if (!cookie) {
-                this._log('Failed to compute cookie for team info');
-                return;
-            }
-
             const response = await this._makeHttpRequest(
                 'https://cursor.com/api/dashboard/teams',
                 'POST',
@@ -780,18 +805,11 @@ class CursorUsageIndicator extends PanelMenu.Button {
         }
     }
 
-    async _getUserAnalytics() {
+    async _getUserAnalytics(cookie) {
         try {
             if (!this._teamInfo) {
                 this._log('No team info available for analytics');
                 this._userAnalytics = null;
-                return;
-            }
-
-            // Compute cookie from SQLite database
-            const cookie = await computeCookieFromSQLite(this._log.bind(this));
-            if (!cookie) {
-                this._log('Failed to compute cookie for user analytics');
                 return;
             }
 
