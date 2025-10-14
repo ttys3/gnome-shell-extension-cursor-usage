@@ -817,10 +817,10 @@ class CursorUsageIndicator extends PanelMenu.Button {
 
             // Calculate recent 7 day
             const now = new Date();
-            // Set endDate to start of yesterday (00:00:00)
-            const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            // Set startDate to 7 days before endDate (00:00:00)
-            const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+            // Set endDate to current time
+            const endDate = now;
+            // Set startDate to 7 days before current time
+            const startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
             const requestBody = {
                 teamId: this._teamInfo.id,
